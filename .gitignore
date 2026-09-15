@@ -1,0 +1,43 @@
+# Python & Bytecode
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+
+# Virtual Environments
+venv/
+env/
+ENV/
+.env
+
+# Large PyTorch model weights & cached tensors (>100MB exceeds GitHub limit)
+*.pt
+*.pth
+*.bin
+*.pkl
+*.joblib
+saved_models/*.pt
+saved_models/*/*.pt
+saved_models/*/*.joblib
+saved_models/cached_multimodal_features.pt
+saved_models/img_proj.pt
+saved_models/text_proj.pt
+
+# Raw Large Dataset Images (3.4 GB total - PAD-UFES-20 dataset)
+data/images/*
+!data/images/PAT_1516_1765_530.png
+!data/images/PAT_46_881_939.png
+!data/images/PAT_1545_1867_547.png
+!data/images/PAT_680_1289_182.png
+!data/images/PAT_1549_1882_230.png
+!data/images/PAT_380_1540_959.png
+!data/images/.gitkeep
+
+# IDE & OS
+.idea/
+.vscode/
+*.swp
+*.swo
+.DS_Store
+Thumbs.db

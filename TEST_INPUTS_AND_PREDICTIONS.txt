@@ -1,0 +1,183 @@
+====================================================================================================
+DERMA-GUARD: COMPLETE CLINICAL MODEL TESTING & PREDICTION REFERENCE MANUAL
+Tested on Local Environment | Checkpoints in saved_models/ (No Re-training Required)
+====================================================================================================
+
+This file provides ready-to-copy terminal commands, input data, and expected clinical outputs
+for all 6 diagnostic classes, all 7 model configurations, and various confidence tiers.
+
+Target Skin Lesion Classes (PAD-UFES-20 Dataset):
+  1. BCC : Basal Cell Carcinoma (Malignant Non-Melanoma Carcinoma)
+  2. ACK : Actinic Keratosis (Pre-Cancerous Sun Damage)
+  3. NEV : Melanocytic Nevus (Benign Mole)
+  4. SEK : Seborrheic Keratosis (Benign Warty / Stuck-on Lesion)
+  5. SCC : Squamous Cell Carcinoma (Malignant Invasive Carcinoma)
+  6. MEL : Melanoma (Highly Malignant Melanocytic Carcinoma)
+
+====================================================================================================
+SECTION 1: QUICK AUTOMATED TEST SCRIPTS & INTERACTIVE APPS
+====================================================================================================
+
+1. Desktop Graphical User Interface (GUI - Visual Window to Select Image & Enter Metadata):
+   python gui_predict.py
+
+2. User-Guided Interactive Terminal Assistant (Select Image, Enter Metadata, Write Notes):
+   python interactive_predict.py
+
+3. Run the Comprehensive Multi-Scenario Clinical Tester (All 8 Scenarios in Sequence):
+   python clinical_case_tester.py --all
+
+2. Run Specific Scenario (1 to 8):
+   python clinical_case_tester.py --scenario 1    # High Confidence Benign Nevus (Model G)
+   python clinical_case_tester.py --scenario 2    # High Confidence Carcinoma (BCC, Model G)
+   python clinical_case_tester.py --scenario 3    # Actinic Sun-Damaged Keratosis (ACK, Model D)
+   python clinical_case_tester.py --scenario 4    # Malignant Melanoma Alert (MEL, Model G)
+   python clinical_case_tester.py --scenario 5    # Moderate Confidence 2-Class Differential (SEK, Model D)
+   python clinical_case_tester.py --scenario 6    # Non-Visual Carcinoma (SCC, Model F)
+   python clinical_case_tester.py --scenario 7    # Low Confidence Multi-Class Ambiguity (Model A)
+   python clinical_case_tester.py --scenario 8    # Conflicting Evidence / Devil's Advocate (Escalate Gate)
+
+3. Run by Class Name:
+   python clinical_case_tester.py --class BCC
+   python clinical_case_tester.py --class MEL
+   python clinical_case_tester.py --class NEV
+
+4. Run the Standalone Tri-Modal Demo:
+   python demo_predict.py
+
+5. Run Automated 4-Case Evaluation:
+   python predict.py --sample-test
+
+
+====================================================================================================
+SECTION 2: READY-TO-COPY PREDICTION COMMANDS FOR ALL 6 CLASSES
+====================================================================================================
+
+----------------------------------------------------------------------------------------------------
+CASE 1: MELANOCYTIC NEVUS (NEV - Benign Mole)
+- Expected Output: High Confidence (>95%), 95% Conformal Set: ['NEV'] (Size: 1, Low Uncertainty)
+- Clinical Advice: Benign melanocytic nevus. Recommend routine periodic observation (ABCDE self-check).
+----------------------------------------------------------------------------------------------------
+[PowerShell]:
+python predict.py --model G --image "data\images\PAT_1516_1765_530.png" --metadata '{"age": 8, "gender": "MALE", "region": "ARM", "diameter_1": 5.0, "diameter_2": 4.0, "fitspatrick": 2, "itch": "FALSE", "grew": "FALSE", "hurt": "FALSE", "bleed": "FALSE", "elevation": "FALSE"}' --text "8-year-old male with a stable, flat, non-pruritic 5mm brownish macule on the arm with no history of growth."
+
+[Command Prompt (CMD)]:
+python predict.py --model G --image "data\images\PAT_1516_1765_530.png" --metadata "{\"age\": 8, \"gender\": \"MALE\", \"region\": \"ARM\", \"diameter_1\": 5.0, \"diameter_2\": 4.0, \"fitspatrick\": 2, \"itch\": \"FALSE\", \"grew\": \"FALSE\", \"hurt\": \"FALSE\", \"bleed\": \"FALSE\", \"elevation\": \"FALSE\"}" --text "8-year-old male with a stable, flat, non-pruritic 5mm brownish macule on the arm with no history of growth."
+
+
+----------------------------------------------------------------------------------------------------
+CASE 2: BASAL CELL CARCINOMA (BCC - Non-Melanoma Carcinoma)
+- Expected Output: High Confidence (>80%), Conformal Set: ['BCC']
+- Clinical Advice: Non-melanoma carcinoma (BCC). Schedule surgical excision or Mohs micrographic surgery.
+----------------------------------------------------------------------------------------------------
+[PowerShell]:
+python predict.py --model G --image "data\images\PAT_46_881_939.png" --metadata '{"age": 55, "gender": "FEMALE", "region": "NECK", "diameter_1": 6.0, "diameter_2": 5.0, "fitspatrick": 3, "itch": "TRUE", "grew": "TRUE", "hurt": "FALSE", "bleed": "TRUE", "elevation": "TRUE"}' --text "55-year-old female presenting with a 6mm bleeding, growing, raised pigmented nodular lesion on the neck with personal cancer history."
+
+[Command Prompt (CMD)]:
+python predict.py --model G --image "data\images\PAT_46_881_939.png" --metadata "{\"age\": 55, \"gender\": \"FEMALE\", \"region\": \"NECK\", \"diameter_1\": 6.0, \"diameter_2\": 5.0, \"fitspatrick\": 3, \"itch\": \"TRUE\", \"grew\": \"TRUE\", \"hurt\": \"FALSE\", \"bleed\": \"TRUE\", \"elevation\": \"TRUE\"}" --text "55-year-old female presenting with a 6mm bleeding, growing, raised pigmented nodular lesion on the neck with personal cancer history."
+
+
+----------------------------------------------------------------------------------------------------
+CASE 3: ACTINIC KERATOSIS (ACK - Sun-Damaged Pre-Cancer)
+- Expected Output: High Confidence (>85%), Conformal Set: ['ACK']
+- Clinical Advice: Pre-malignant actinic keratosis. Treat with cryotherapy (liquid nitrogen) or topical 5-FU.
+----------------------------------------------------------------------------------------------------
+[PowerShell]:
+python predict.py --model G --image "data\images\PAT_1545_1867_547.png" --metadata '{"age": 77, "gender": "FEMALE", "region": "FACE", "diameter_1": 5.0, "diameter_2": 4.0, "fitspatrick": 2, "itch": "TRUE", "grew": "FALSE", "hurt": "FALSE", "bleed": "FALSE", "elevation": "FALSE"}' --text "77-year-old patient with an itchy flat erythematous keratotic patch on the face."
+
+[Command Prompt (CMD)]:
+python predict.py --model G --image "data\images\PAT_1545_1867_547.png" --metadata "{\"age\": 77, \"gender\": \"FEMALE\", \"region\": \"FACE\", \"diameter_1\": 5.0, \"diameter_2\": 4.0, \"fitspatrick\": 2, \"itch\": \"TRUE\", \"grew\": \"FALSE\", \"hurt\": \"FALSE\", \"bleed\": \"FALSE\", \"elevation\": \"FALSE\"}" --text "77-year-old patient with an itchy flat erythematous keratotic patch on the face."
+
+
+----------------------------------------------------------------------------------------------------
+CASE 4: MALIGNANT MELANOMA (MEL - High Urgency Malignancy Alert)
+- Expected Output: Malignancy detected with high alert
+- Clinical Advice: URGENT ONCOLOGY ACTION: Malignant Melanoma. Schedule immediate narrow excisional biopsy (2mm margin) and histopathology.
+----------------------------------------------------------------------------------------------------
+[PowerShell]:
+python predict.py --model G --image "data\images\PAT_680_1289_182.png" --metadata '{"age": 78, "gender": "MALE", "region": "BACK", "diameter_1": 10.0, "diameter_2": 10.0, "fitspatrick": 2, "itch": "FALSE", "grew": "TRUE", "hurt": "FALSE", "bleed": "FALSE", "elevation": "TRUE"}' --text "78-year-old male with a 10mm raised, growing pigmented lesion on the back with personal and family skin cancer history."
+
+[Command Prompt (CMD)]:
+python predict.py --model G --image "data\images\PAT_680_1289_182.png" --metadata "{\"age\": 78, \"gender\": \"MALE\", \"region\": \"BACK\", \"diameter_1\": 10.0, \"diameter_2\": 10.0, \"fitspatrick\": 2, \"itch\": \"FALSE\", \"grew\": \"TRUE\", \"hurt\": \"FALSE\", \"bleed\": \"FALSE\", \"elevation\": \"TRUE\"}" --text "78-year-old male with a 10mm raised, growing pigmented lesion on the back with personal and family skin cancer history."
+
+
+----------------------------------------------------------------------------------------------------
+CASE 5: SEBORRHEIC KERATOSIS (SEK - Benign Verrucous Lesion)
+- Expected Output: Primary SEK, Conformal Set: 1-2 classes
+- Clinical Advice: Benign seborrheic keratosis. No therapeutic intervention required unless symptomatic or cosmetically desired.
+----------------------------------------------------------------------------------------------------
+[PowerShell]:
+python predict.py --model G --image "data\images\PAT_1549_1882_230.png" --metadata '{"age": 53, "gender": "FEMALE", "region": "CHEST", "diameter_1": 5.0, "diameter_2": 4.0, "fitspatrick": 2, "itch": "TRUE", "grew": "FALSE", "hurt": "FALSE", "bleed": "FALSE", "elevation": "TRUE"}' --text "53-year-old patient with a 5mm raised, itchy, stuck-on appearing verrucous lesion on the chest."
+
+[Command Prompt (CMD)]:
+python predict.py --model G --image "data\images\PAT_1549_1882_230.png" --metadata "{\"age\": 53, \"gender\": \"FEMALE\", \"region\": \"CHEST\", \"diameter_1\": 5.0, \"diameter_2\": 4.0, \"fitspatrick\": 2, \"itch\": \"TRUE\", \"grew\": \"FALSE\", \"hurt\": \"FALSE\", \"bleed\": \"FALSE\", \"elevation\": \"TRUE\"}" --text "53-year-old patient with a 5mm raised, itchy, stuck-on appearing verrucous lesion on the chest."
+
+
+----------------------------------------------------------------------------------------------------
+CASE 6: SQUAMOUS CELL CARCINOMA (SCC - Invasive Carcinoma)
+- Expected Output: Primary SCC
+- Clinical Advice: Invasive Squamous Cell Carcinoma. Complete surgical excision with histological margin control and lymph node staging.
+----------------------------------------------------------------------------------------------------
+[PowerShell]:
+python predict.py --model G --image "data\images\PAT_380_1540_959.png" --metadata '{"age": 60, "gender": "MALE", "region": "NOSE", "diameter_1": 3.0, "diameter_2": 3.0, "fitspatrick": 2, "itch": "TRUE", "grew": "FALSE", "hurt": "FALSE", "bleed": "FALSE", "elevation": "FALSE"}' --text "60-year-old male with an itchy 3mm ulcerated erythematous nodule on the nose with occupational pesticide exposure."
+
+[Command Prompt (CMD)]:
+python predict.py --model G --image "data\images\PAT_380_1540_959.png" --metadata "{\"age\": 60, \"gender\": \"MALE\", \"region\": \"NOSE\", \"diameter_1\": 3.0, \"diameter_2\": 3.0, \"fitspatrick\": 2, \"itch\": \"TRUE\", \"grew\": \"FALSE\", \"hurt\": \"FALSE\", \"bleed\": \"FALSE\", \"elevation\": \"FALSE\"}" --text "60-year-old male with an itchy 3mm ulcerated erythematous nodule on the nose with occupational pesticide exposure."
+
+
+====================================================================================================
+SECTION 3: TESTING DIFFERENT MODALITY INPUT COMBINATIONS (MODELS A TO G)
+====================================================================================================
+
+1. ONLY IMAGE (Model A - ResNet50 + MHSA ViT):
+   python predict.py --model A --image "data\images\PAT_1516_1765_530.png"
+
+2. ONLY METADATA (Model B - Residual MetaBlock MLP):
+   python predict.py --model B --metadata '{"age": 55, "gender": "FEMALE", "region": "NECK", "diameter_1": 6.0, "diameter_2": 5.0, "fitspatrick": 3, "itch": "TRUE", "grew": "TRUE", "hurt": "FALSE", "bleed": "TRUE", "elevation": "TRUE"}'
+
+3. ONLY TEXT (Model C - Bio_ClinicalBERT):
+   python predict.py --model C --text "55-year-old female presenting with a 6mm bleeding, growing, raised pigmented nodular lesion on the neck."
+
+4. IMAGE + METADATA (Model D - Adaptive Gated Fusion):
+   python predict.py --model D --image "data\images\PAT_46_881_939.png" --metadata '{"age": 55, "gender": "FEMALE", "region": "NECK", "diameter_1": 6.0, "diameter_2": 5.0, "fitspatrick": 3, "itch": "TRUE", "grew": "TRUE", "hurt": "FALSE", "bleed": "TRUE", "elevation": "TRUE"}'
+
+5. IMAGE + TEXT (Model E - Adaptive Gated Fusion):
+   python predict.py --model E --image "data\images\PAT_46_881_939.png" --text "55-year-old female presenting with a 6mm bleeding, growing, raised pigmented nodular lesion on the neck."
+
+6. METADATA + TEXT (Model F - Adaptive Gated Fusion, No Image):
+   python predict.py --model F --metadata '{"age": 60, "gender": "MALE", "region": "NOSE", "diameter_1": 3.0, "diameter_2": 3.0, "fitspatrick": 2, "itch": "TRUE", "grew": "FALSE", "hurt": "FALSE", "bleed": "FALSE", "elevation": "FALSE"}' --text "60-year-old male with an itchy 3mm ulcerated erythematous nodule on the nose with occupational pesticide exposure."
+
+7. FULL TRI-MODAL (Model G - Image + Metadata + Text):
+   python predict.py --model G --image "data\images\PAT_46_881_939.png" --metadata '{"age": 55, "gender": "FEMALE", "region": "NECK", "diameter_1": 6.0, "diameter_2": 5.0, "fitspatrick": 3, "itch": "TRUE", "grew": "TRUE", "hurt": "FALSE", "bleed": "TRUE", "elevation": "TRUE"}' --text "55-year-old female presenting with a 6mm bleeding, growing, raised pigmented nodular lesion on the neck."
+
+8. AUTO-GENERATE TEXT FROM METADATA (Convenience Mode):
+   python predict.py --model G --image "data\images\PAT_46_881_939.png" --metadata '{"age": 55, "gender": "FEMALE", "region": "NECK", "diameter_1": 6.0, "diameter_2": 5.0, "fitspatrick": 3, "itch": "TRUE", "grew": "TRUE", "hurt": "FALSE", "bleed": "TRUE", "elevation": "TRUE"}' --auto-generate-text
+
+
+====================================================================================================
+SECTION 4: UNDERSTANDING UNCERTAINTY TIERS & ADVICE GENERATION
+====================================================================================================
+
+The DERMA-GUARD Evidence Manager and Split Conformal Predictor produce three distinct confidence tiers:
+
+1. High Confidence Tier (Confidence >= 80%, Conformal Set Size: 1):
+   - Conformal Prediction Set : 1 single disease class (e.g. ['NEV'] or ['BCC'])
+   - Uncertainty Level        : LOW (Decisive Diagnosis)
+   - Clinical Action Protocol : Proceed with definitive treatment or routine discharge.
+
+2. Moderate Confidence Tier (Confidence: 50% - 80%, Conformal Set Size: 2):
+   - Conformal Prediction Set : 2 differential classes (e.g. ['SEK', 'BCC'] or ['ACK', 'SCC'])
+   - Uncertainty Level        : MODERATE (Differential Diagnosis)
+   - Clinical Action Protocol : High-magnification dermoscopy inspection or 3-week re-evaluation.
+
+3. Low Confidence / Ambiguity Tier (Confidence < 50%, Conformal Set Size >= 3):
+   - Conformal Prediction Set : 3 to 4 classes (e.g. ['BCC', 'SEK', 'MEL', 'NEV'])
+   - Uncertainty Level        : HIGH (Multi-Class Ambiguity)
+   - Clinical Action Protocol : 
+     a) ACQUIRE missing clinical modalities (patient age, growth history, bleeding status).
+     b) Mandatory biopsy / histopathology before formulating therapeutic decisions.
+
+4. Conflicting Evidence / Safety Gate (ESCALATE / ABSTAIN):
+   - Triggered when Devil's Advocate detects contradiction between image and patient metadata.
+   - Clinical Action Protocol : Immediate escalation to Senior Dermatologist review. Do not rely on automated predictions.
+====================================================================================================

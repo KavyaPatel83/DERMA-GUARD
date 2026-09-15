@@ -1,0 +1,30 @@
+# DERMA-GUARD Core Dependencies
+# Tested on Python 3.10+ / 3.14 on Windows 10/11 & Linux
+
+# Deep Learning Frameworks
+torch>=2.0.0
+torchvision>=0.15.0
+
+# Natural Language Processing & Transformers (Bio_ClinicalBERT)
+transformers>=4.30.0
+huggingface-hub>=0.16.0
+
+# Machine Learning & Tabular Ensembles
+scikit-learn>=1.2.0
+scipy>=1.10.0
+joblib>=1.3.0
+
+# Data Manipulation & Arrays
+numpy>=1.24.0
+pandas>=2.0.0
+
+# Image Processing & Computer Vision
+pillow>=9.5.0
+opencv-python>=4.8.0
+
+# Data Visualization & Scorecards
+matplotlib>=3.7.0
+seaborn>=0.12.0
+
+# Utilities
+tqdm>=4.65.0

@@ -1,0 +1,64 @@
+======================================================================
+PERFORMANCE EVALUATION REPORT: MODEL G (Model G (Full Multimodal))
+Visual Backbone: ResNet50 + MHSA ViT | Text: Bio_ClinicalBERT | Metadata: Residual MetaBlock MLP
+Dataset: PAD-UFES-20 (Total N = 2298 | Train N = 1953 | Val N = 229 | Test Split N = 459)
+======================================================================
+
+OVERALL PERFORMANCE PARAMETERS:
+----------------------------------------------------------------------
+Accuracy                  :  89.76%
+Sensitivity / Recall (M)  : 0.9499
+Sensitivity / Recall (W)  : 0.8976
+Specificity (Macro TNR)   : 0.9795
+Specificity (Weighted TNR): 0.9792
+ROC-AUC / AUC (Macro OvR) : 0.9994
+ROC-AUC / AUC (Weighted)  : 0.9988
+AUPRC (Macro PR-AUC)      : 0.9987
+AUPRC (Weighted PR-AUC)   : 0.9975
+Precision (Macro)         : 0.8502
+Precision (Weighted)      : 0.9412
+F1-Score (Macro)          : 0.8621
+F1-Score (Weighted)       : 0.9083
+True Positives (TP)       : 412
+True Negatives (TN)       : 2248
+False Positives (FP)      : 47
+False Negatives (FN)      : 47
+Dataset Size Used         : Total = 2298 (Train = 1953, Val = 229, Test = 459)
+
+AVERAGE DYNAMIC FUSION WEIGHTS: [0.7383023500442505, 0.16358152031898499, 0.09811624884605408]
+
+PER-CLASS CLASSIFICATION BREAKDOWN:
+----------------------------------------------------------------------
+              precision    recall  f1-score   support
+
+         BCC     0.9766    0.7396    0.8418       169
+         ACK     0.9057    0.9863    0.9443       146
+         NEV     1.0000    1.0000    1.0000        49
+         SEK     1.0000    1.0000    1.0000        47
+         SCC     0.9487    0.9737    0.9610        38
+         MEL     0.2703    1.0000    0.4255        10
+
+    accuracy                         0.8976       459
+   macro avg     0.8502    0.9499    0.8621       459
+weighted avg     0.9412    0.8976    0.9083       459
+
+
+PER-CLASS CONFUSION MATRIX PARAMETERS (TP, TN, FP, FN, Sens, Spec, AUC, AUPRC):
+----------------------------------------------------------------------
+Class    | TP    | TN    | FP    | FN    | Sens    | Spec    | AUC     | AUPRC  
+---------------------------------------------------------------------------
+BCC      | 125   | 287   | 3     | 44    | 0.7396  | 0.9897  | 0.9972  | 0.9947 
+ACK      | 144   | 298   | 15    | 2     | 0.9863  | 0.9521  | 0.9993  | 0.9987 
+NEV      | 49    | 410   | 0     | 0     | 1.0000  | 1.0000  | 1.0000  | 1.0000 
+SEK      | 47    | 412   | 0     | 0     | 1.0000  | 1.0000  | 1.0000  | 1.0000 
+SCC      | 37    | 419   | 2     | 1     | 0.9737  | 0.9952  | 0.9999  | 0.9987 
+MEL      | 10    | 422   | 27    | 0     | 1.0000  | 0.9399  | 1.0000  | 1.0000 
+
+CONFUSION MATRIX (Classes: ['BCC', 'ACK', 'NEV', 'SEK', 'SCC', 'MEL']):
+----------------------------------------------------------------------
+[[125,  15,   0,   0,   2,  27],
+ [  2, 144,   0,   0,   0,   0],
+ [  0,   0,  49,   0,   0,   0],
+ [  0,   0,   0,  47,   0,   0],
+ [  1,   0,   0,   0,  37,   0],
+ [  0,   0,   0,   0,   0,  10]]
