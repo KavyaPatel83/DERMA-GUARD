@@ -1,4 +1,5 @@
-# DERMA-GUARD: Multimodal Evidence-Based Skin Lesion Diagnostic System
+# DERMA-GUARD: EVIDENCE AWARE MULTIMODAL  SKIN LESION ASSESSMENT AGENTIC SYSTEM
+
 
 An advanced multimodal clinical diagnostic framework trained on the **PAD-UFES-20** dataset (2,298 patients, 6 skin lesion classes: `BCC`, `ACK`, `NEV`, `SEK`, `SCC`, `MEL`). The system implements **7 independent models** covering every modality permutation (**Models A through G**), powered by **Multi-Head Self-Attention Vision Transformer (ViT)** with **ResNet50** backbone, **Residual MetaBlock MLP** for clinical metadata, and **Bio_ClinicalBERT** for medical text narratives, unified through the **DERMA-GUARD Evidence Manager**, **Diagnosis-Adaptive Gated Fusion**, and **Split Conformal Prediction**.
 
