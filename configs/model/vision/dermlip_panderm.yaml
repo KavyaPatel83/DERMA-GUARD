@@ -1,0 +1,11 @@
+# DermLIP-PanDerm VLM config
+name: dermlip_panderm
+hf_repo: "redlessone/DermLIP_PanDerm-base-w-PubMed-256"
+embed_dim: 768
+num_classes: 7  # Derm7pt classes (will be overridden per dataset)
+zero_shot_template: "This is a skin image of {class_name}"
+freeze_layers: 0  # fine-tune all layers
+output_keys:
+  - logits
+  - embedding
+  - quality_score

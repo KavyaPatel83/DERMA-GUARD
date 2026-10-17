@@ -1,0 +1,7 @@
+# Bio_ClinicalBERT Text Encoder config
+name: clinicalbert
+hf_repo: "emilyalsentzer/Bio_ClinicalBERT"
+embed_dim: 768
+max_length: 128
+pooling: mean_last_hidden   # mean-pool last hidden state → 768-d embedding
+freeze_layers: 0

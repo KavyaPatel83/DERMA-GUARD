@@ -1,0 +1,43 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Doctors &amp; departments — DERMA-GUARD</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="/static/css/style.css?v=3">
+  <script src="/static/js/common.js?v=3"></script>
+</head>
+<body>
+<main class="container" style="padding-top:36px">
+  <div class="eyebrow">Our team</div>
+  <h2>Doctors &amp; departments</h2>
+  <p class="lead">Specialist dermatologists supported by DERMA-GUARD's evidence-aware triage.</p>
+
+  <h3 style="margin-top:36px">Departments</h3>
+  <div class="grid g3" style="margin-top:12px">
+    <div class="card dept-card"><span class="tag brand">General</span><h3 style="margin-top:10px">General Dermatology</h3><p class="muted" style="margin:0">Rashes, acne, eczema, infections, pigment concerns, actinic keratosis.</p></div>
+    <div class="card dept-card"><span class="tag malignant">Oncology</span><h3 style="margin-top:10px">Dermatologic Oncology</h3><p class="muted" style="margin:0">Suspected skin cancer, mole mapping, melanoma follow-up.</p></div>
+    <div class="card dept-card"><span class="tag pre-malignant">Surgery</span><h3 style="margin-top:10px">Dermatologic Surgery</h3><p class="muted" style="margin:0">Biopsies, excision and Mohs micrographic surgery.</p></div>
+  </div>
+
+  <h3 style="margin-top:36px">Doctors</h3>
+  <div class="grid g2" id="docs" style="margin-top:12px"><div class="skeleton" style="height:110px"></div></div>
+</main>
+<script>
+(async () => {
+  const docs = await api("/api/doctors");
+  const me = await whoami;
+  document.getElementById("docs").innerHTML = docs.map((d) => `
+    <div class="card doc-card"><div class="big-av">${fmt.esc(d.name.replace("Dr. ", "")[0])}</div>
+      <div style="flex:1"><h3 style="margin:0">${fmt.esc(d.name)}</h3>
+        <div class="row" style="margin:6px 0"><span class="tag brand">${fmt.esc(d.department || "")}</span><span class="tag">${fmt.esc(d.specialty || "")}</span></div>
+        <p class="muted" style="margin:0 0 10px;font-size:.92rem">${fmt.esc(d.bio || "")}</p>
+        ${me && me.role === "patient" ? `<a class="btn btn-primary btn-sm" href="/appointments?doctor=${d.id}">Book with ${fmt.esc(d.name.split(" ")[1])}</a>`
+          : !me ? `<a class="btn btn-ghost btn-sm" href="/register?next=/appointments?doctor=${d.id}">Register to book</a>` : ""}
+      </div></div>`).join("") || '<p class="muted">No doctors listed.</p>';
+})();
+</script>
+</body>
+</html>

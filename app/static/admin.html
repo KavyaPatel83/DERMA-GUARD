@@ -1,0 +1,103 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Administration — DERMA-GUARD</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="/static/css/style.css?v=3">
+  <script src="/static/js/common.js?v=3"></script>
+</head>
+<body>
+<main class="container" style="padding-top:36px">
+  <div class="eyebrow">Administration</div>
+  <h2>Users, access &amp; audit</h2>
+
+  <div class="card" style="margin-top:22px">
+    <div class="row spread"><h3 style="margin:0">User accounts</h3></div>
+    <div class="scroll-x" style="margin-top:12px"><table class="t" id="users"></table></div>
+  </div>
+
+  <div class="grid g2" style="margin-top:20px;align-items:start">
+    <div class="card">
+      <h3>Create staff account</h3>
+      <form id="nf" class="stack" novalidate>
+        <div class="fields" style="grid-template-columns:1fr 1fr">
+          <div><label class="f" for="n_name">Name</label><input type="text" id="n_name"></div>
+          <div><label class="f" for="n_email">Email</label><input type="text" id="n_email"></div>
+          <div><label class="f" for="n_role">Role</label><select id="n_role"><option value="doctor">Doctor</option><option value="admin">Administrator</option></select></div>
+          <div><label class="f" for="n_dept">Department</label>
+            <select id="n_dept"><option>General Dermatology</option><option>Dermatologic Oncology</option><option>Dermatologic Surgery</option><option>Paediatric Dermatology</option></select></div>
+          <div class="span2" style="grid-column:span 2"><label class="f" for="n_spec">Specialty</label><input type="text" id="n_spec"></div>
+          <div class="span2" style="grid-column:span 2"><label class="f" for="n_pw">Temporary password</label><input type="text" id="n_pw" placeholder="min 8 chars, letter + digit"></div>
+        </div>
+        <div class="form-err" id="nerr"></div>
+        <button class="btn btn-primary">Create account</button>
+      </form>
+    </div>
+    <div class="card">
+      <h3>Access model</h3>
+      <ul class="clean">
+        <li><b>Patients</b> see and delete only their own cases; they can request review and book visits.</li>
+        <li><b>Doctors</b> see every case in the hospital and record the final decision.</li>
+        <li><b>Administrators</b> manage accounts and see aggregate statistics — never clinical content.</li>
+        <li>Every sensitive action is written to the audit log below.</li>
+      </ul>
+    </div>
+  </div>
+
+  <div class="card" style="margin-top:20px">
+    <div class="row spread"><h3 style="margin:0">Audit log</h3><button class="btn btn-ghost btn-sm" id="refresh">Refresh</button></div>
+    <div class="scroll-x" style="margin-top:12px"><table class="t" id="audit"></table></div>
+  </div>
+</main>
+<script>
+const $ = (id) => document.getElementById(id);
+let me;
+async function loadUsers() {
+  const users = await api("/api/admin/users");
+  const now = Date.now() / 1000;
+  $("users").innerHTML = `<thead><tr><th>Name</th><th>Email</th><th>Role</th><th>Department</th><th>Last sign-in</th><th>Status</th><th></th></tr></thead><tbody>` +
+    users.map((u) => { const locked = u.locked_until > now;
+      return `<tr><td><b>${fmt.esc(u.name)}</b></td><td>${fmt.esc(u.email)}</td>
+      <td><select data-role="${u.id}" ${u.id === me.id ? "disabled" : ""} style="width:auto;padding:5px 8px">${["patient", "doctor", "admin"].map((r) => `<option ${r === u.role ? "selected" : ""}>${r}</option>`).join("")}</select></td>
+      <td>${fmt.esc(u.department || "—")}</td><td>${u.last_login ? fmt.date(u.last_login) : "—"}</td>
+      <td><span class="tag ${locked ? "pre-malignant" : u.active ? "benign" : "malignant"}">${locked ? "locked" : u.active ? "active" : "disabled"}</span></td>
+      <td><div class="row" style="gap:6px;flex-wrap:nowrap">
+        ${locked ? `<button class="btn btn-ghost btn-sm" data-unlock="${u.id}">Unlock</button>` : ""}
+        ${u.id !== me.id ? `<button class="btn ${u.active ? "btn-danger" : "btn-ghost"} btn-sm" data-toggle="${u.id}" data-active="${u.active ? 0 : 1}">${u.active ? "Disable" : "Enable"}</button>` : ""}</div></td></tr>`; }).join("") + "</tbody>";
+}
+async function loadAudit() {
+  const rows = await api("/api/admin/audit?limit=80");
+  $("audit").innerHTML = `<thead><tr><th>Time</th><th>User</th><th>Action</th><th>Target</th><th>IP</th><th>Detail</th></tr></thead><tbody>` +
+    rows.map((r) => `<tr><td>${fmt.date(r.ts)}</td><td>${fmt.esc(r.email || "—")}</td><td><span class="tag ${/fail|denied|deactivate|block/.test(r.action) ? "malignant" : ""}">${fmt.esc(r.action)}</span></td>
+      <td class="mono">${fmt.esc(r.target || "")}</td><td class="mono">${fmt.esc(r.ip || "")}</td><td class="muted">${fmt.esc(r.detail || "")}</td></tr>`).join("") + "</tbody>";
+}
+document.addEventListener("click", async (e) => {
+  const t = e.target.closest("[data-toggle]"), un = e.target.closest("[data-unlock]");
+  try {
+    if (t) { await api("/api/admin/users/" + t.dataset.toggle, { method: "PATCH", json: { active: t.dataset.active === "1" } }); }
+    else if (un) { await api("/api/admin/users/" + un.dataset.unlock, { method: "PATCH", json: { unlock: true } }); }
+    else return;
+    await Promise.all([loadUsers(), loadAudit()]);
+  } catch (ex) { toast(ex.message, "bad"); }
+});
+document.addEventListener("change", async (e) => {
+  const s = e.target.closest("[data-role]"); if (!s) return;
+  try { await api("/api/admin/users/" + s.dataset.role, { method: "PATCH", json: { role: s.value } }); toast("Role updated."); await Promise.all([loadUsers(), loadAudit()]); }
+  catch (ex) { toast(ex.message, "bad"); loadUsers(); }
+});
+$("nf").addEventListener("submit", async (e) => {
+  e.preventDefault(); $("nerr").textContent = "";
+  try {
+    await api("/api/admin/users", { json: { name: n_name.value, email: n_email.value, password: n_pw.value, role: n_role.value,
+      department: n_role.value === "doctor" ? n_dept.value : null, specialty: n_spec.value || null } });
+    toast("Account created."); $("nf").reset(); await Promise.all([loadUsers(), loadAudit()]);
+  } catch (ex) { $("nerr").textContent = ex.message; }
+});
+$("refresh").onclick = loadAudit;
+(async () => { me = await requireAuth(["admin"]); await Promise.all([loadUsers(), loadAudit()]); })();
+</script>
+</body>
+</html>

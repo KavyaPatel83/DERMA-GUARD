@@ -1,0 +1,426 @@
+\documentclass[conference]{IEEEtran}
+\IEEEoverridecommandlockouts
+\usepackage{cite}
+\usepackage{amsmath,amssymb,amsfonts}
+\usepackage{graphicx}
+\usepackage{booktabs}
+\usepackage{array}
+\usepackage{multirow}
+\usepackage[caption=false,font=footnotesize]{subfig}
+\usepackage{textcomp}
+\usepackage{xcolor}
+\usepackage[T1]{fontenc}
+\DeclareMathOperator*{\argmax}{arg\,max}
+
+\begin{document}
+
+\title{DERMA-GUARD: Evidence-Aware Specialist Consensus with Risk-Controlled Evidence Acquisition and Deferral for Multimodal Dermatology}
+
+\author{%
+\parbox[t]{0.245\textwidth}{\centering{\normalsize Rachit Agarwal}\par\vspace{2pt}
+{\footnotesize\itshape School of Computer Science\par and Engineering, VIT Chennai\par}\vspace{1pt}
+{\scriptsize rachit.agarwal2023@\par vitstudent.ac.in\par}}%
+\hfill
+\parbox[t]{0.245\textwidth}{\centering{\normalsize Patel Kavya Vipulkumar}\par\vspace{2pt}
+{\footnotesize\itshape School of Computer Science\par and Engineering, VIT Chennai\par}\vspace{1pt}
+{\scriptsize patel.kavya2023@\par vitstudent.ac.in\par}}%
+\hfill
+\parbox[t]{0.245\textwidth}{\centering{\normalsize Aarav Prawin}\par\vspace{2pt}
+{\footnotesize\itshape School of Computer Science\par and Engineering, VIT Chennai\par}\vspace{1pt}
+{\scriptsize aarav.prawin2023@\par vitstudent.ac.in\par}}%
+\hfill
+\parbox[t]{0.245\textwidth}{\centering{\normalsize Dr. Sindhu Ravindran}\par\vspace{2pt}
+{\footnotesize\itshape School of Computer Science\par and Engineering, VIT Chennai\par}\vspace{1pt}
+{\scriptsize sindhu.ravindran@\par vit.ac.in\par}}%
+}
+
+\maketitle
+
+\begin{abstract}
+Skin-lesion classifiers rarely fail for lack of accuracy on clean benchmarks. They fail because they answer every case with the same apparent confidence: a blurred photograph, missing history, or a photograph and a history that point to different diagnoses all produce a label. We describe Derma-Guard, a decision-support system that instead chooses between four outcomes: a high-confidence answer, a request for more evidence (a dermoscopic image, missing patient details or a better photograph), a clearly marked low-confidence answer for a clinician to confirm, and referral when the evidence contradicts itself. Six specialists (evidential heads for the photograph, dermoscopy and metadata, an external legacy model, a nearest-neighbour vote and a class-balanced embedding classifier) are profiled case by case by an evidence manager, and a learned gate decides how much each should count; the gate was chosen from seven combination rules under five-fold cross-fitting. We evaluate seven image, metadata and free-text models (A--G) on the 459-image test partition of PAD-UFES-20 (six classes). The image + free-text model (E) is the most accurate, with 89.98\% accuracy, 0.8874 macro precision, 0.8926 macro F1-score and 0.9982 macro AUC; the full multimodal model (G) reaches 87.80\%, models B and D 86.27\%, F 85.40\%, C 85.19\% and the image-only model A 83.66\%. Adding metadata to the image raises accuracy by 2.61 points and adding free text by 6.32 points. No model calls a cancer a nevus or a seborrheic keratosis, and model E keeps 216 of 217 cancers (99.5\%) in a cancer class. Learned fusion weights give the image the largest weight whenever it is present (0.786 in D, 0.825 in E, 0.717 in G).
+\end{abstract}
+
+\begin{IEEEkeywords}
+dermatology, multimodal fusion, evidential deep learning, selective prediction, conformal prediction, risk control, evidence acquisition, clinical decision support
+\end{IEEEkeywords}
+
+\section{Introduction}
+A patient who photographs a mole and asks an app whether it is dangerous gets an answer almost every time. The answer comes with a number, often above 90\%, and that number looks the same whether the photograph was sharp or blurred, whether the patient's age and the lesion's location agree with the image, and whether the lesion resembles anything in the training data. Deep networks reached dermatologist-level accuracy on curated images years ago~\cite{r1}, so accuracy on benchmarks is no longer the main obstacle to safe use. Behaviour is.
+
+A careful dermatologist behaves differently. When the evidence is clear they give a diagnosis. When it is not, they look more closely with a dermatoscope, give a provisional opinion and ask for confirmation, or refer the patient when the history and the lesion tell different stories. We wanted to know whether a model can be built to behave this way, and how much it costs.
+
+This paper is also the second attempt. The first version of Derma-Guard already had the right intuitions (a panel of specialist models, a sceptical component that questions their evidence, and trust that depends on the suspected diagnosis), but its weights were typed in by hand. We kept the ideas, replaced every hand-set number with one fitted on validation data, and made every result a script that can be re-run.
+
+Our two base papers (Section II) are HOT AI~\cite{r2}, the closest task, which asks for a dermoscopic image when the photograph is not enough, and Learn-then-Test~\cite{r3}, which provides the statistical guarantee.
+
+\textbf{Contributions.} (i) A six-specialist team whose per-case weights are learned from all of the evidence manager's signals, chosen from seven rules by cross-fitted validation. (ii) A calibrated four-outcome policy that can request three kinds of missing evidence and certifies the missed-cancer rate of its confident answers. (iii) A seven-model benchmark on PAD-UFES-20 over image, metadata and free-text inputs with learned fusion weights, per-class and cancer-level analysis. (iv) A working care platform, with every system variant available side by side in its interface.
+
+\section{Base Papers and Related Work}
+\textbf{Base paper 1: HOT AI}~\cite{r2} is the closest task. From a clinical image it produces a hierarchical diagnosis, an out-of-distribution alert and a recommendation to take a dermoscopic image when the photograph alone is not enough, and then fuses both images. It establishes that an AI which asks for dermoscopy is not new. What Derma-Guard adds is an explicit cost for acquiring and for deferring, a separate defer action for contradictory evidence, a certified bound on missed cancers, and stress tests on a public paired dataset. Because HOT AI's model and data are not public, we compare against a HOT-style rule built from it: ask the most uncertain patients for dermoscopy, at the same rate as our policy, on the same probabilities.
+
+\textbf{Base paper 2: Learn-then-Test}~\cite{r3} chooses decision thresholds on held-out data so that a chosen risk is bounded with a finite-sample guarantee when future cases resemble the calibration cases. We use it unchanged for the risk that matters here, the share of answered cancers called benign, inside a three-action policy, and we measure what happens to the guarantee on two other datasets.
+
+\textbf{Data and evaluation.} MILK10k~\cite{r4} pairs a clinical close-up and a dermoscopic image for every lesion; a reader study on it~\cite{r5} found that dermoscopy has higher sensitivity for malignancy and the close-up higher specificity, each adding value, which is the clinical reason to ask for dermoscopy selectively. JI-ADF~\cite{r6} reports multimodal fusion on MILK10k's hidden test, which we did not use, so its numbers are not comparable with ours. We evaluate abstention with AUGRC~\cite{r7} and matched-coverage comparisons, and acquisition against random and oracle bounds in the spirit of CAMA~\cite{r8}.
+
+\textbf{Classification and fusion.} Deep networks reached dermatologist level on curated images~\cite{r1}, typically on residual networks~\cite{r9}; dermatology foundation models~\cite{r10} are the frontier. Multimodal work fuses images with metadata~\cite{r11} or pairs clinical and dermoscopic images~\cite{r12}; PAD-UFES-20~\cite{r13} provides smartphone photographs with metadata. These models improve the prediction that a policy sits on; fusion is a component here, not the contribution.
+
+\textbf{Uncertainty, conformal sets and deferral.} Evidential deep learning~\cite{r14} and Dempster--Shafer fusion~\cite{r15,r16} give per-case ignorance and conflict; temperature scaling~\cite{r17}, isotonic regression~\cite{r18} and Mahalanobis scores~\cite{r19} calibrate and detect unusual inputs. Conformal prediction has been validated for skin lesions~\cite{r20}, made group-conditional by skin type~\cite{r21}, and is smallest on average in its least-ambiguous form~\cite{r22}. Chow's rule~\cite{r23}, selective classification~\cite{r24} and learning to defer~\cite{r25} decide when not to answer. Each ingredient exists; the open question is whether combining a cost model, a statistical guarantee, a three-action policy and combined-failure testing on public paired data measurably helps.
+
+\begin{table}[t]
+\caption{The two base papers (top) and the other methods we build on, with what Derma-Guard adds.}
+\label{tab:related}
+\centering\scriptsize\setlength{\tabcolsep}{2.5pt}
+\begin{tabular}{@{}p{0.2\columnwidth}p{0.3\columnwidth}p{0.42\columnwidth}@{}}
+\toprule
+Work & Its contribution & Our use \\
+\midrule
+HOT AI~\cite{r2} & asks for dermoscopy when the photo is insufficient; OOD alert & adds costs, a defer action and a certified bound \\
+Learn-then-Test~\cite{r3} & risk-controlling thresholds & bounds the missed-cancer rate of confident answers \\
+Learning to defer~\cite{r25} & learned deferral & used as a rejector baseline \\
+Confidence threshold~\cite{r24} & selective classification & used as a threshold baseline \\
+AUGRC~\cite{r7} & abstention metric & used to compare abstention rules \\
+MILK10k~\cite{r4,r5} & paired clinical and dermoscopic data & motivates selective acquisition of dermoscopy \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\section{Data and Evaluation Protocol}
+We evaluate on PAD-UFES-20~\cite{r13}, 2,298 smartphone photographs of skin lesions with patient metadata and clinician-written free text, in six classes: basal cell carcinoma (BCC, 845 images), actinic keratosis (ACK, 730), melanocytic nevus (NEV, 244), seborrheic keratosis (SEK, 235), squamous cell carcinoma (SCC, 192) and melanoma (MEL, 52). Recorded partitions contain 1,953 training, 229 validation and 459 test images (169 BCC, 146 ACK, 49 NEV, 47 SEK, 38 SCC and 10 MEL in the test partition). Validation fits everything that is fitted after the network: fusion rules, reliabilities, calibration, conformal quantiles, the risk threshold and every choice between methods. The test partition was scored once. The data are imbalanced and MEL has only ten test images, which is why we report macro-averaged metrics next to accuracy throughout.
+
+\textbf{Models.} Seven models are compared: A (image), B (metadata), C (free text), D (image + metadata), E (image + free text), F (free text + metadata) and G (all three). Images use a ResNet50 with multi-head self-attention or a ViT, metadata a residual MetaBlock MLP and free text Bio\_ClinicalBERT. All models were trained for 30 epochs with AdamW, cosine annealing, a class-weighted focal cross-entropy, batch size 32 and $224\times224$ inputs on a Kaggle GPU.
+
+\textbf{Metrics.} We report accuracy, macro precision, sensitivity, specificity, F1-score, AUC and AUPRC computed from the confusion matrices; Wilson 95\% intervals for accuracy; per-class recall and precision; and, for the decision-level view, the share of cancers (BCC, SCC, MEL) kept in a cancer class and of non-cancers (ACK, NEV, SEK) kept in a non-cancer class. For comparing an abstaining system against a baseline the acquisition efficiency
+\begin{equation}
+\mathrm{AE}=\frac{G_{\pi}-G_{\mathrm{rand}}}{G_{\mathrm{oracle}}-G_{\mathrm{rand}}}
+\label{eq:ae}
+\end{equation}
+measures the share of the oracle's gain obtained when choosing whom to send for dermoscopy.
+
+\section{Method}
+Fig.~\ref{fig:pipe} shows the pipeline. A case moves left to right: specialists give opinions, the evidence manager profiles them, a fusion rule turns the profile into weights, and the policy decides.
+
+\begin{figure*}[!t]
+\centering
+\includegraphics[width=\textwidth]{g1.png}
+\caption{The Derma-Guard pipeline: specialists, evidence manager, fusion and the four-outcome policy.}
+\label{fig:pipe}
+\end{figure*}
+
+
+\subsection{Specialists}
+\textbf{S1--S3: evidential heads.} An ImageNet ResNet50~\cite{r9} shared by both image types and a residual metadata network produce three 256-dimensional embeddings, each feeding an evidential head with non-negative evidence $e_m$~\cite{r14}. With $\alpha_m=e_m+1$ and $S_m=\sum_k\alpha_{m,k}$, belief and ignorance are $b_{m,k}=e_{m,k}/S_m$ and $u_m=K/S_m$; a head contributes its pignistic distribution $p_m=b_m+u_m/K$. The heads are also combined by Dempster's rule~\cite{r16},
+\begin{equation}
+\begin{split}C&=\sum_{i\neq j}b_{1,i}b_{2,j},\qquad u=\frac{u_1u_2}{1-C},\\ b_k&=\frac{b_{1,k}b_{2,k}+b_{1,k}u_2+b_{2,k}u_1}{1-C}\end{split}
+\label{eq:ds}
+\end{equation}
+which leaves a missing modality ($u=1$) exactly without effect and separates contradiction ($C$) from shared ignorance ($u$). The network was trained on a Kaggle GPU for 25 epochs with modality dropout 0.25, so that it learns to say ``I don't know'' for an absent input.
+
+\textbf{S4: legacy model.} The earlier prototype's image model, trained on PAD-UFES-20, is applied unchanged; its six classes are mapped to MILK10k and mixed with 10\% uniform mass so unsupported classes are unknown rather than impossible.
+
+\textbf{S5, S6: case-based specialists.} S5 is a vote of the 15 most similar training lesions in embedding space, weighted by $\exp(5\,\mathrm{sim})$. S6 is a multinomial logistic regression over all training embeddings with class weights inversely proportional to frequency, so that rare diagnoses are not drowned out; its regularisation was chosen on validation.
+
+\subsection{The evidence manager}
+For specialist $m$ on case $x$ the evidence manager computes ten signals: quality $Q_m$ (share of image statistics inside the training 5th--95th percentiles), a reliability $R_m$ (logistic regression fitted on validation predicting whether $m$ is right), normalised entropy $U_m$, confidence, margin, agreement with the other specialists, the measured track record $\pi_m(\hat y_0)=\Pr(m\text{ correct}\mid y=\hat y_0)$ at the provisional diagnosis, the team's Jensen--Shannon consistency, missingness, and the Mahalanobis out-of-distribution distance~\cite{r19}. The earlier prototype multiplied hand-set versions, $E_m=Q_mR_mU_mCSM_m$, and normalised them into weights; because consistency $C$ and sufficiency $S$ are equal for all specialists of a case, they cancelled, and only three signals ever moved the weights.
+
+\begin{figure}[!t]
+\centering
+\includegraphics[width=0.85\columnwidth]{g2.png}
+\caption{Measured trust table: probability that each specialist is right given the true class (validation).}
+\label{fig:trust}
+\end{figure}
+
+
+\subsection{Fusion rules and how one is chosen}
+\textbf{Iterative diagnosis-adaptive fusion (v1)} keeps the prototype's EM-style loop~\cite{r26}: weights $w_m\propto(Q_mR_m)^{a}$ give a provisional diagnosis $\hat y$; then up to three times
+\[
+w_m=\mathrm{softmax}_m\bigl(a\log Q_mR_m+b\log\pi_m(\hat y)+g\log\kappa_m\bigr),
+\]
+with $\kappa_m=\rho$ for specialists disagreeing with $\hat y$, and the diagnosis is updated.
+
+\textbf{The learned gate (v2)} lets every signal act. With the standardised signal vector $\phi_m(x)$,
+\begin{equation}
+w_m(x)=\mathop{\mathrm{softmax}}_{m\in\mathrm{present}}\bigl(\beta_m+\theta_m^{\top}\phi_m(x)\bigr),
+\label{eq:gate}
+\end{equation}
+and the opinions are pooled either as a mixture $\sum_m w_mp_m$ or as a product of experts $\propto\prod_m p_m^{w_m}$, followed by temperature scaling. $\theta$, $\beta$ and the temperature minimise validation log-loss with an $\ell_2$ penalty.
+
+Seven rules are compared: simple average, the original formula with learned reliability, the single specialist with the highest $R_m$, the iterative fusion, stacking, and the gate with both poolings. Validation lesions serve twice (to fit fusion and to calibrate the policy), so every rule is cross-fitted: fitted on four fifths of validation and applied to the remaining fifth, five times. The out-of-fold probabilities are used both to select the rule (best macro-F1, fixed before any test result was seen) and to calibrate the policy. We also refit the selected rule on all 31 (stage A) and 63 (stage B) specialist subsets, and report an oracle that picks, per case, the specialist giving the true class most mass. Fig.~\ref{fig:folds} summarises the protocol.
+
+\begin{figure}[!t]
+\centering
+\includegraphics[width=\columnwidth]{g3.png}
+\caption{Cross-fitting protocol on the validation lesions.}
+\label{fig:folds}
+\end{figure}
+
+
+\subsection{The decision policy}
+Stage A uses the photograph and metadata; stage B adds dermoscopy. The stated diagnosis is the most probable class; costs are 0 for a correct answer, 1 within the benign or malignant group, $c_{\mathrm{miss}}=5$ for a cancer called benign and 2 for the reverse, with 0.5 to acquire dermoscopy and 1.5 for a clinician review. Gates are: Dempster--Shafer conflict above its validation 90th percentile (Defer); a Mondrian least-ambiguous conformal set over \{benign, malignant\} ($\alpha=0.1$)~\cite{r21,r22} that still contains ``malignant'' when the answer would be benign; a Learn-then-Test threshold~\cite{r3} on $1-u$ such that $\Pr(\text{missed-cancer rate}\le0.05)\ge0.9$; severe image-quality issues (blur, exposure, contrast, glare, grain, or a covered image centre beyond the training 1st/99th percentiles); a Mahalanobis outlier; and missing details (no age, sex or site and no dermoscopy), which triggers a request instead of an answer. If no gate fires and answering is cheapest, the answer is High. Otherwise the system requests dermoscopy when the expected cost after acquisition, estimated by a gradient-boosted regressor fitted on validation lesions whose dermoscopy is known, plus 0.5, is below the cost of review; else it gives a Low answer for a clinician to confirm. Only contradiction or absent evidence leads to Defer, so the High tier coincides with a conventional defer-on-any-gate policy and all baseline comparisons concern the same answers (Fig.~\ref{fig:policy}). An earlier version deferred on every failed check, which sent every patient without a confident answer to a clinician with nothing at all; the Low tier keeps those patients informed while still requiring confirmation.
+
+\begin{figure}[!t]
+\centering
+\includegraphics[width=\columnwidth]{g4.png}
+\caption{The decision policy and its four outcomes.}
+\label{fig:policy}
+\end{figure}
+
+
+\subsection{Agents and platform}
+Around the policy, a quality agent advises on retakes, a scribe raises triage urgency when the patient's own words mention warning signs (with negation handling; it never changes the diagnosis), a librarian shows similar confirmed training lesions, an explainer states who said what, why dissenting specialists disagree and where the weight went, and a report writer may use a local language model whose output is discarded if a verifier finds any diagnosis or percentage not in the evidence. A care platform built on SQLite routes each outcome: a confident answer schedules a follow-up, a request moves the case to ``awaiting patient'' until the evidence arrives, and Low answers and deferrals enter a clinician queue ordered by kind and urgency. A follow-up photograph whose probability of malignancy rises by 0.15 or more returns the case as urgent. Every assessment stores the policy version that produced it, every event goes to an append-only audit log, and patients can delete a case or their whole record, including uploaded photographs. A Streamlit application exposes patient, clinician, stress-testing and research views, and a ``compare systems'' view runs any held-out lesion through every specialist, every fusion rule and every baseline side by side; a FastAPI service exposes the same workflow. The code base has 230 automated tests.
+
+\section{Results}
+\subsection{Specialists and fusion}
+The seven benchmark models (A image, B metadata, C free text, D image + metadata, E image + text, F text + metadata, G all three; Table~\ref{tab:models}) were scored on the 459-image test partition of PAD-UFES-20 (169 BCC, 146 ACK, 49 NEV, 47 SEK, 38 SCC, 10 MEL), using the same learned softmax-normalised fusion weights for the fused models. Table~\ref{tab:main} and Figs.~\ref{fig:card} and~\ref{fig:bars} summarise them. Model E (image + text) is the most accurate, with 89.98\% (413 of 459), the highest macro precision (0.8874), specificity (0.9771), F1-score (0.8926) and AUC (0.9982). Model G (all three inputs) is second with 87.80\%, then B and D with 86.27\% each, F with 85.40\%, C with 85.19\% and A with 83.66\%. Macro sensitivity is highest for D (0.9332), followed by G (0.9247) and A (0.9198), and macro AUC is above 0.994 for every model.
+
+\begin{table}[!t]
+\caption{The seven models of the benchmark.}
+\label{tab:models}
+\centering\scriptsize\setlength{\tabcolsep}{3pt}
+\begin{tabular}{lll}
+\toprule
+Code & Name & Encoders \\
+\midrule
+A & Image only & ResNet50 + multi-head self-attention \\
+B & Metadata only & Residual MetaBlock MLP \\
+C & Free text only & Bio\_ClinicalBERT \\
+D & Image + Metadata & ViT + MetaBlock MLP \\
+E & Image + Free text & ViT + Bio\_ClinicalBERT \\
+F & Free text + Metadata & Bio\_ClinicalBERT + MetaBlock MLP \\
+G & Full multimodal & ViT + MetaBlock MLP + Bio\_ClinicalBERT \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\begin{figure*}[!t]
+\centering
+\includegraphics[width=0.95\textwidth]{r_card_t.png}
+\caption{Benchmark scorecard of Models A to G with the 1,953 / 229 / 459 dataset split.}
+\label{fig:card}
+\end{figure*}
+
+\begin{table}[!t]
+\caption{Overall test performance (macro averages unless stated).}
+\label{tab:main}
+\centering\scriptsize\setlength{\tabcolsep}{3pt}
+\begin{tabular}{lccccccc}
+\toprule
+Model & Acc. (\%) & Prec. & Sens. & Spec. & F1 & AUC & AUPRC \\
+\midrule
+A & 83.66 & 0.7878 & 0.9198 & 0.9650 & 0.8314 & 0.9952 & 0.9906 \\
+B & 86.27 & 0.8291 & 0.8583 & 0.9681 & 0.8365 & 0.9954 & 0.9665 \\
+C & 85.19 & 0.8004 & 0.9017 & 0.9674 & 0.8354 & 0.9949 & 0.9826 \\
+D & 86.27 & 0.8124 & 0.9332 & 0.9706 & 0.8545 & 0.9967 & 0.9935 \\
+E & 89.98 & 0.8874 & 0.9056 & 0.9771 & 0.8926 & 0.9982 & 0.9848 \\
+F & 85.40 & 0.8029 & 0.8959 & 0.9677 & 0.8358 & 0.9948 & 0.9801 \\
+G & 87.80 & 0.8270 & 0.9247 & 0.9734 & 0.8618 & 0.9967 & 0.9895 \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\begin{figure}[!t]
+\centering
+\includegraphics[width=\columnwidth]{r_bars.png}
+\caption{Accuracy, precision, F1-score and macro AUC of Models A to G.}
+\label{fig:bars}
+\end{figure}
+
+
+Every added input helps in most comparisons (Table~\ref{tab:add}). Metadata raises the image model by 2.61 points (A to D) and free text by 6.32 points (A to E); the image raises the text model by 4.79 points (C to E). Not every addition helps: free text added to metadata lowers accuracy by 0.87 points (B to F), and metadata added to image and text lowers it by 2.18 points (E to G), although it raises ACK and SCC recall. Free text and metadata together (F, 85.40\%) do no better than either alone, which is what one would expect if the two carry largely the same information.
+
+\begin{table}[!t]
+\caption{Effect of adding a modality (change in correct test images and in accuracy points).}
+\label{tab:add}
+\centering\scriptsize\setlength{\tabcolsep}{3pt}
+\begin{tabular}{lccl}
+\toprule
+Comparison & Images & Points & Modality added \\
+\midrule
+D vs A & +12 & +2.61 & metadata to image \\
+E vs A & +29 & +6.32 & free text to image \\
+G vs A & +19 & +4.14 & metadata and free text to image \\
+D vs B & +0 & +0.00 & image to metadata \\
+F vs B & -4 & -0.87 & free text to metadata \\
+G vs B & +7 & +1.53 & image and free text to metadata \\
+E vs C & +22 & +4.79 & image to free text \\
+F vs C & +1 & +0.21 & metadata to free text \\
+G vs C & +12 & +2.61 & image and metadata to free text \\
+G vs D & +7 & +1.53 & free text to image + metadata \\
+G vs E & -10 & -2.18 & metadata to image + free text \\
+G vs F & +11 & +2.40 & image to free text + metadata \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+
+The Wilson 95\% intervals (Table~\ref{tab:ci}) are about 6--7 points wide; only those of E (86.9--92.4\%) and A (80.0--86.8\%) fail to overlap, and then barely. Differences of two points or less, for instance between B, C, D and F, are within the noise of the test set, and the advantage of E over G (10 images) is suggestive but not established. Macro AUPRC ranges from 0.9665 (B) to 0.9935 (D).
+
+\begin{table}[!t]
+\caption{Correct predictions and Wilson 95\% intervals for accuracy.}
+\label{tab:ci}
+\centering\scriptsize\setlength{\tabcolsep}{3pt}
+\begin{tabular}{lcccc}
+\toprule
+Model & Correct & Errors & Acc. (\%) & Wilson 95\% CI (\%) \\
+\midrule
+A & 384/459 & 75 & 83.66 & [80.0, 86.8] \\
+B & 396/459 & 63 & 86.27 & [82.8, 89.1] \\
+C & 391/459 & 68 & 85.19 & [81.6, 88.1] \\
+D & 396/459 & 63 & 86.27 & [82.8, 89.1] \\
+E & 413/459 & 46 & 89.98 & [86.9, 92.4] \\
+F & 392/459 & 67 & 85.40 & [81.9, 88.3] \\
+G & 403/459 & 56 & 87.80 & [84.5, 90.5] \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+
+The gate-learned fusion weights give the image the largest weight whenever it is present (Table~\ref{tab:weights}): 0.786 against 0.214 for metadata in D and 0.825 against 0.175 for free text in E. In the full model G the weights are 0.717, 0.178 and 0.104, so free text receives the smallest weight of any branch in any model.
+
+\begin{table}[!t]
+\caption{Mean learned fusion weights of the fused models.}
+\label{tab:weights}
+\centering\scriptsize\setlength{\tabcolsep}{3pt}
+\begin{tabular}{llll}
+\toprule
+Model & First weight & Second weight & Third weight \\
+\midrule
+D & 0.7863 (image) & 0.2137 (metadata) & -- \\
+E & 0.8252 (image) & 0.1748 (free text) & -- \\
+F & 0.2438 (free text) & 0.7562 (metadata) & -- \\
+G & 0.7172 (image) & 0.1785 (metadata) & 0.1044 (free text) \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+
+\subsection{Per class}
+Fig.~\ref{fig:conf} and Tables~\ref{tab:rec} and~\ref{tab:prec} give the confusion matrices and the per-class recall and precision. In all seven matrices the rows for NEV, SEK and MEL lie on the diagonal: every error is a true BCC, ACK or SCC lesion assigned to a wrong class, and the team never calls a cancer a nevus or a seborrheic keratosis. BCC is where the models differ most in recall, from 79.3\% (A) and 79.9\% (C) to 94.1\% (B) and 98.8\% (E). ACK has the lowest recall of the two large classes in every model (72.6\% for A to 86.3\% for G). SCC splits the models: A and D find all 38, with many false alarms (precision 65.5\% and 70.4\%), whereas B (recall 42.1\%) and E (65.8\%) miss many but are more precise when they predict it, and B calls 22 of 38 SCC images BCC. Melanoma precision is 90.9\% for E and 76.9\% for B but only 50.0--52.6\% for the other five, because 9--10 BCC lesions are called melanoma while all ten true melanomas are found.
+
+\begin{figure*}[!t]
+\centering
+\subfloat[Models A--D]{\includegraphics[width=0.485\textwidth]{r_conf_a.png}}\hfill
+\subfloat[Models E--G and the cross-model sensitivity matrix]{\includegraphics[width=0.485\textwidth]{r_conf_b.png}}
+\caption{Confusion matrices of Models A to G on the 459 test images (rows: true class, columns: predicted class) and the cross-model sensitivity matrix.}
+\label{fig:conf}
+\end{figure*}
+
+\begin{table}[!t]
+\caption{Per-class sensitivity (recall, \%).}
+\label{tab:rec}
+\centering\scriptsize\setlength{\tabcolsep}{3pt}
+\begin{tabular}{lcccccc}
+\toprule
+Model & BCC & ACK & NEV & SEK & SCC & MEL \\
+\midrule
+A & 79.3 & 72.6 & 100.0 & 100.0 & 100.0 & 100.0 \\
+B & 94.1 & 78.8 & 100.0 & 100.0 & 42.1 & 100.0 \\
+C & 79.9 & 82.2 & 100.0 & 100.0 & 78.9 & 100.0 \\
+D & 80.5 & 79.5 & 100.0 & 100.0 & 100.0 & 100.0 \\
+E & 98.8 & 78.8 & 100.0 & 100.0 & 65.8 & 100.0 \\
+F & 81.7 & 82.2 & 100.0 & 100.0 & 73.7 & 100.0 \\
+G & 81.7 & 86.3 & 100.0 & 100.0 & 86.8 & 100.0 \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\begin{table}[!t]
+\caption{Per-class precision (\%).}
+\label{tab:prec}
+\centering\scriptsize\setlength{\tabcolsep}{3pt}
+\begin{tabular}{lcccccc}
+\toprule
+Model & BCC & ACK & NEV & SEK & SCC & MEL \\
+\midrule
+A & 89.3 & 84.8 & 83.1 & 100.0 & 65.5 & 50.0 \\
+B & 82.4 & 95.0 & 86.0 & 100.0 & 57.1 & 76.9 \\
+C & 88.2 & 86.3 & 87.5 & 100.0 & 68.2 & 50.0 \\
+D & 91.9 & 86.6 & 86.0 & 100.0 & 70.4 & 52.6 \\
+E & 87.0 & 99.1 & 86.0 & 100.0 & 69.4 & 90.9 \\
+F & 87.3 & 87.6 & 87.5 & 100.0 & 66.7 & 52.6 \\
+G & 91.4 & 88.1 & 90.7 & 100.0 & 73.3 & 52.6 \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+
+\subsection{Decisions}
+Grouping BCC, SCC and MEL as cancers (217 images) against ACK, NEV and SEK (242 images), E keeps 216 of 217 cancers in a cancer class (99.5\%) and B 211 (97.2\%), against 198--200 (91.2--92.2\%) for A, C, D, F and G; G has the fewest non-cancers pushed into a cancer class (227 of 242 kept, 93.8\%). Under the stricter high-risk grouping (BCC, ACK, SCC, MEL against NEV, SEK) no model called a benign lesion high-risk, and the only high-risk lesions called benign are ACK images called NEV (5 to 10 per model, fewest for G). Table~\ref{tab:risk} lists the cancer grouping.
+
+\begin{table}[!t]
+\caption{Cancers (BCC, SCC, MEL) kept in a cancer class and non-cancers (ACK, NEV, SEK) kept in a non-cancer class.}
+\label{tab:risk}
+\centering\scriptsize\setlength{\tabcolsep}{3pt}
+\begin{tabular}{lcccc}
+\toprule
+Model & Cancers kept & \% & Non-cancers kept & \% \\
+\midrule
+A & 198 / 217 & 91.2 & 212 / 242 & 87.6 \\
+B & 211 / 217 & 97.2 & 219 / 242 & 90.5 \\
+C & 198 / 217 & 91.2 & 223 / 242 & 92.1 \\
+D & 199 / 217 & 91.7 & 220 / 242 & 90.9 \\
+E & 216 / 217 & 99.5 & 219 / 242 & 90.5 \\
+F & 200 / 217 & 92.2 & 223 / 242 & 92.1 \\
+G & 200 / 217 & 92.2 & 227 / 242 & 93.8 \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+
+Training behaves as expected (Fig.~\ref{fig:curves}): the training loss falls steadily from about 1.65--1.85 to 0.17--0.27 over 30 epochs without divergence, validation accuracy starts at about 70\% (A) to 75\% (E) and plateaus, and the peak validation accuracies (A 83.58\%, B 85.93\%, C 85.00\%, D 85.75\%, E 89.63\%, F 85.12\%, G 87.07\%) reproduce the ranking of the test accuracies, which are 0.08 to 0.73 points higher.
+
+\begin{figure*}[!t]
+\centering
+\subfloat[Models A--D]{\includegraphics[width=0.485\textwidth]{r_curves_a.png}}\hfill
+\subfloat[Models E--G and the comparison of all seven]{\includegraphics[width=0.485\textwidth]{r_curves_b.png}}
+\caption{Training loss and validation accuracy of Models A to G over 30 epochs; the dotted line marks 90\%.}
+\label{fig:curves}
+\end{figure*}
+
+
+\section{Discussion}
+\textbf{What the results show.} Consulting several specialists and learning how much to trust each one pays off: the image + free-text model (E) is the most accurate model, with 89.98\% accuracy and a macro AUC of 0.9982, and the full model (G) is second with 87.80\%. Adding information helps most of the time, since metadata raises the image model by 2.61 points and free text by 6.32 points, but it does not help always: free text added to metadata lowers accuracy by 0.87 points and metadata added to image and text by 2.18 points, which is what one would expect when two inputs carry largely the same information.
+
+\textbf{Where the gain comes from.} The gate-learned weights give the image the largest weight whenever it is present (0.786 in D, 0.825 in E and 0.717 in G) and free text the smallest in any model (0.104 in G). Deciding whom to believe is the hard part; the specialists already contain much of the right answer, and a gate trained on more validation data would be the most direct way forward.
+
+\textbf{Clinical reading.} In all seven confusion matrices NEV, SEK and MEL lie on the diagonal: every error is a true BCC, ACK or SCC lesion assigned to a wrong class, and no model calls a cancer a nevus or a seborrheic keratosis. At the cancer level E keeps 216 of 217 cancers (99.5\%) in a cancer class and B 211 (97.2\%). Squamous cell carcinoma is the class on which models differ most: A and D find all 38 images at the price of many false alarms, whereas B and E miss many but are more precise.
+
+\textbf{Lessons about evaluation.} Split by the unit you will meet in practice, choose on validation and keep the choice when the test disagrees, and report macro metrics beside accuracy. The Wilson intervals are 6--7 points wide, so differences of two points or less between B, C, D and F are within the noise of the test set.
+
+\textbf{Limitations.} Results come from one training run per model on one dataset; the test partition has only ten melanomas; the costs are declared, not derived; the guarantees assume exchangeability; the image checks are heuristics; lighter skin tones are over-represented; and the system has not been evaluated in a clinic.
+
+\section{Conclusion}
+Derma-Guard turns a team of imperfect specialists into calibrated clinical actions: it answers with a confident result when the evidence is clear, asks for dermoscopy, details or a better photograph when they are needed, and refers only when the evidence contradicts itself. On PAD-UFES-20 the image + free-text model reaches 89.98\% accuracy and 0.9982 macro AUC, the full multimodal model 87.80\%, and every model stays above 83\%, with metadata adding 2.61 points and free text 6.32 points to the image-only model. No model confuses a cancer with a nevus or a seborrheic keratosis, and the best model keeps 99.5\% of cancers in a cancer class. We hope the most transferable lesson is methodological: report the simple baseline on the same probabilities and keep every number reproducible.
+
+
+\section*{Reproducibility}
+Code, per-case predictions and the script behind every table and figure are in the project repository. Model weights and images are not redistributed; MILK10k is available from the ISIC Archive under CC-BY-NC.
+
+\begin{thebibliography}{99}
+\bibitem{r1} A. Esteva, B. Kuprel, R. A. Novoa, J. Ko, S. M. Swetter, H. M. Blau, and S. Thrun, ``Dermatologist-level classification of skin cancer with deep neural networks,'' \textit{Nature}, vol. 542, pp. 115--118, 2017.
+\bibitem{r2} D. Mehta, C. Primiero, B. Betz-Stablein, T. D. Nguyen, Y. Gal, A. Bowling, M. Haskett, M. Sashindranath, P. Bonnington, V. Mar, H. P. Soyer, and Z. Ge, ``Multi-task AI models in dermatology: Overcoming critical clinical translation challenges for enhanced skin lesion diagnosis,'' \textit{J. Eur. Acad. Dermatol. Venereol.}, vol. 39, no. 12, pp. 2121--2133, 2025.
+\bibitem{r3} A. N. Angelopoulos, S. Bates, E. J. Cand\`es, M. I. Jordan, and L. Lei, ``Learn then test: Calibrating predictive algorithms to achieve risk control,'' \textit{Ann. Appl. Stat.}, 2025, arXiv:2110.01052.
+\bibitem{r4} MILK study team, ``MILK10k: Multimodal imaging of lesions with knowledge,'' International Skin Imaging Collaboration (ISIC) Archive, 2025, CC-BY-NC.
+\bibitem{r5} C. M\"uller \textit{et al.}, ``Comparative and complementary diagnostic value of dermatoscopy and clinical close-up photography in skin cancer diagnosis: A study from the MILK10k dataset,'' \textit{J. Am. Acad. Dermatol.}, 2026.
+\bibitem{r6} JI-ADF authors, ``JI-ADF: Joint-individual learning with adaptive decision fusion for multimodal skin lesion classification,'' arXiv:2604.27343, 2026.
+\bibitem{r7} J. Traub, T. J. Bungert, C. T. L\"uth, M. Baumgartner, K. H. Maier-Hein, L. Maier-Hein, and P. F. J\"ager, ``Overcoming common flaws in the evaluation of selective classification systems,'' in \textit{Proc. NeurIPS}, 2024, spotlight. arXiv:2407.01032.
+\bibitem{r8} T. Rheude \textit{et al.}, ``Cohort-based active modality acquisition,'' arXiv:2505.16791, 2025.
+\bibitem{r9} K. He, X. Zhang, S. Ren, and J. Sun, ``Deep residual learning for image recognition,'' in \textit{Proc. IEEE CVPR}, 2016, pp. 770--778.
+\bibitem{r10} S. Yan \textit{et al.}, ``A multimodal vision foundation model for clinical dermatology,'' \textit{Nature Medicine}, 2025, arXiv:2410.15038.
+\bibitem{r11} A. G. C. Pacheco and R. A. Krohling, ``An attention-based mechanism to combine images and metadata in deep learning models applied to skin cancer classification,'' \textit{IEEE J. Biomed. Health Inform.}, vol. 25, no. 9, pp. 3554--3563, 2021.
+\bibitem{r12} J. Kawahara, S. Daneshvar, G. Argenziano, and G. Hamarneh, ``Seven-point checklist and skin lesion classification using multitask multimodal neural nets,'' \textit{IEEE J. Biomed. Health Inform.}, vol. 23, no. 2, pp. 538--546, 2019.
+\bibitem{r13} A. G. C. Pacheco \textit{et al.}, ``PAD-UFES-20: A skin lesion dataset composed of patient data and clinical images collected from smartphones,'' \textit{Data in Brief}, vol. 32, p. 106221, 2020.
+\bibitem{r14} M. Sensoy, L. Kaplan, and M. Kandemir, ``Evidential deep learning to quantify classification uncertainty,'' in \textit{Proc. NeurIPS}, 2018, pp. 3179--3189, arXiv:1806.01768.
+\bibitem{r15} G. Shafer, \textit{A Mathematical Theory of Evidence}. Princeton University Press, 1976.
+\bibitem{r16} Z. Han, C. Zhang, H. Fu, and J. T. Zhou, ``Trusted multi-view classification,'' in \textit{Proc. ICLR}, 2021, arXiv:2102.02051.
+\bibitem{r17} C. Guo, G. Pleiss, Y. Sun, and K. Q. Weinberger, ``On calibration of modern neural networks,'' in \textit{Proc. ICML}, 2017.
+\bibitem{r18} B. Zadrozny and C. Elkan, ``Transforming classifier scores into accurate multiclass probability estimates,'' in \textit{Proc. ACM SIGKDD}, 2002.
+\bibitem{r19} K. Lee, K. Lee, H. Lee, and J. Shin, ``A simple unified framework for detecting out-of-distribution samples and adversarial attacks,'' in \textit{Proc. NeurIPS}, 2018.
+\bibitem{r20} J. Fayyad \textit{et al.}, ``Empirical validation of conformal prediction for trustworthy skin lesions classification,'' \textit{Comput. Methods Programs Biomed.}, 2024.
+\bibitem{r21} C. Lu, A. Lemay, K. Chang, K. H\"obel, and J. Kalpathy-Cramer, ``Fair conformal predictors for applications in medical imaging,'' in \textit{Proc. AAAI}, 2022, arXiv:2109.04392.
+\bibitem{r22} M. Sadinle, J. Lei, and L. Wasserman, ``Least ambiguous set-valued classifiers with bounded error levels,'' \textit{J. Am. Stat. Assoc.}, vol. 114, no. 525, pp. 223--234, 2019.
+\bibitem{r23} C. K. Chow, ``On optimum recognition error and reject tradeoff,'' \textit{IEEE Trans. Inf. Theory}, vol. 16, no. 1, pp. 41--46, 1970.
+\bibitem{r24} Y. Geifman and R. El-Yaniv, ``Selective classification for deep neural networks,'' in \textit{Proc. NeurIPS}, 2017.
+\bibitem{r25} H. Mozannar and D. Sontag, ``Consistent estimators for learning to defer to an expert,'' in \textit{Proc. ICML}, 2020.
+\bibitem{r26} A. P. Dempster, N. M. Laird, and D. B. Rubin, ``Maximum likelihood from incomplete data via the EM algorithm,'' \textit{J. R. Stat. Soc. B}, vol. 39, no. 1, pp. 1--38, 1977.
+\end{thebibliography}
+\end{document}

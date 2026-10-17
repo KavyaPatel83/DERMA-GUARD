@@ -1,0 +1,88 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Case report — DERMA-GUARD</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="/static/css/style.css?v=3">
+  <script src="/static/js/common.js?v=3"></script>
+  <script src="/static/js/result.js?v=3"></script>
+</head>
+<body>
+<main class="container report" id="root"><div class="skeleton" style="height:300px"></div></main>
+<script>
+const DECISIONS = { agree: "Agrees with AI assessment", modify: "Diagnosis modified", refer_urgent: "Urgent referral / biopsy", need_more: "Needs more information" };
+(async () => {
+  const me = await requireAuth(["patient", "doctor"]);
+  const id = new URLSearchParams(location.search).get("id");
+  const root = document.getElementById("root");
+  if (!id) { root.innerHTML = '<div class="callout bad">No case id supplied.</div>'; return; }
+  try {
+    const rec = await api("/api/cases/" + encodeURIComponent(id));
+    const b = { case_id: rec.id, result: rec.result, flags: rec.flags, retrieval: rec.retrieval, referral: rec.referral, scores: rec.scores,
+                report: rec.report, agents: rec.agents, inputs: rec.inputs, morphology: rec.morphology, acquisition: rec.acquisition, explanation_audit: rec.explanation_audit };
+    const r = rec.result;
+    const meta = rec.inputs.metadata || {};
+    const metaRows = Object.entries(meta).map(([k, v]) => `<tr><td class="muted">${fmt.esc(k.replace(/_/g, " "))}</td><td><b>${fmt.esc(v)}</b></td></tr>`).join("");
+    const rv = rec.review;
+    const isDoc = me.role === "doctor", canReview = isDoc && rec.owner_id !== me.id;
+    const STATUS = { ai_only: "AI analysis only", pending_review: "Awaiting doctor review", reviewed: "Reviewed by doctor" };
+
+    const aiDx = r.diagnosis;
+    const reviewBlock = rv ? `<div class="card final-decision ${rv.overrides_ai ? "override" : ""}" style="margin-top:16px"><h4>Final decision · ${fmt.esc(rv.doctor)}</h4>
+        <div class="row" style="margin:10px 0"><span class="tag benign">${fmt.esc(DECISIONS[rv.decision] || rv.decision)}</span>
+          <span class="tag ${CLASS_GROUP[rv.final_dx || aiDx.code]}">${rv.final_dx || aiDx.code} · ${fmt.esc(rv.final_dx_name || aiDx.name)}</span>
+          <span class="tag">${rv.overrides_ai ? "differs from AI (" + fmt.esc(aiDx.code) + ")" : "matches AI diagnosis"}</span></div>
+        <p style="margin:0 0 8px">${fmt.esc(rv.notes)}</p><div class="muted" style="font-size:.84rem">${fmt.date(rv.ts)}</div></div>` : "";
+
+    const form = canReview ? `<div class="card no-print" style="margin-top:16px;border-color:var(--accent)"><h4>${rv ? "Amend final decision" : "Your final decision"}</h4>
+        <p class="muted" style="margin:8px 0 0;font-size:.9rem">AI suggests <b>${fmt.esc(aiDx.name)}</b> (${Math.round(aiDx.confidence * 100)}% model confidence${rec.scores ? ", combined score " + Math.round(rec.scores.combined * 100) : ""}). The decision you record here is what the patient sees as final.</p>
+        <form id="rf" class="stack" style="margin-top:10px" novalidate>
+          <div class="fields" style="grid-template-columns:1fr 1fr">
+            <div><label class="f" for="dec">Decision</label><select id="dec">${Object.entries(DECISIONS).map(([k, v]) => `<option value="${k}">${v}</option>`).join("")}</select></div>
+            <div><label class="f" for="dx">Final diagnosis (optional)</label><select id="dx"><option value="">—</option>${Object.entries(CLASS_NAMES).map(([k, v]) => `<option value="${k}">${k} · ${v}</option>`).join("")}</select></div>
+          </div>
+          <div><label class="f" for="notes">Notes to the patient &amp; record</label><textarea id="notes" maxlength="2000" placeholder="Findings, advice, follow-up…"></textarea></div>
+          <div class="form-err" id="rerr"></div><div class="row"><button class="btn btn-primary">Record final decision</button><button type="button" class="btn btn-ghost" id="confirmAi">Confirm AI diagnosis</button></div>
+        </form></div>` : "";
+
+    root.innerHTML = `
+      <div class="row spread no-print" style="margin-bottom:14px">
+        <a href="/history">← Cases</a><button class="btn btn-ghost btn-sm" onclick="print()">${icon("print", 16)} Print / save as PDF</button>
+      </div>
+      <div class="card">
+        <div class="row spread">
+          <div><div class="eyebrow">DERMA-GUARD report</div><h2 style="margin:0">Case ${fmt.esc(rec.id)}</h2>
+            <div class="muted">${fmt.date(rec.created)} · ${r.selected_model} · ${r.active_modalities.join(" + ")}</div>
+            <div class="row" style="margin-top:8px"><span class="tag ${rec.status === "reviewed" ? "benign" : rec.status === "pending_review" ? "pre-malignant" : ""}">${STATUS[rec.status]}</span>
+              ${isDoc ? `<span class="tag">Patient: ${fmt.esc(rec.owner)}</span>` : rec.doctor ? `<span class="tag brand">${fmt.esc(rec.doctor.name)}</span>` : ""}</div></div>
+          ${rec.has_image ? `<img src="/api/case-image/${rec.id}" alt="Lesion" style="width:140px;height:140px;object-fit:cover;border-radius:12px">` : ""}
+        </div>
+      </div>
+      ${reviewBlock}${form}
+      ${(metaRows || rec.inputs.text) ? `<div class="card" style="margin-top:16px"><h4>Inputs</h4>
+        ${metaRows ? `<table class="t" style="margin-top:10px"><tbody>${metaRows}</tbody></table>` : ""}
+        ${rec.inputs.text ? `<p style="margin:14px 0 0"><b>Description:</b> <span class="muted">${fmt.esc(rec.inputs.text)}</span></p>` : ""}</div>` : ""}
+      <div style="margin-top:16px">${ResultView.full(b, me.role)}</div>
+      <div class="callout bad" style="margin-top:20px">Research prototype. This report is not a medical diagnosis and must not be used for clinical decisions without clinician confirmation.</div>`;
+    document.title = `Case ${rec.id} — DERMA-GUARD`;
+
+    const rf = document.getElementById("rf");
+    const ca = document.getElementById("confirmAi");
+    if (ca) ca.onclick = () => { dec.value = "agree"; dx.value = aiDx.code; if (!notes.value.trim()) notes.value = "Reviewed the images, details and AI analysis; I agree with the assessment."; };
+    if (rf) rf.addEventListener("submit", async (e) => {
+      e.preventDefault(); document.getElementById("rerr").textContent = "";
+      try {
+        await api(`/api/cases/${rec.id}/review`, { json: { decision: dec.value, final_dx: dx.value || null, notes: notes.value } });
+        toast("Review submitted."); location.reload();
+      } catch (ex) { document.getElementById("rerr").textContent = ex.message; }
+    });
+  } catch (e) {
+    root.innerHTML = `<div class="callout bad">${fmt.esc(e.message)}</div>`;
+  }
+})();
+</script>
+</body>
+</html>

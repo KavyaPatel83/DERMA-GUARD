@@ -1,0 +1,53 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Register — DERMA-GUARD</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="/static/css/style.css?v=3">
+  <script src="/static/js/common.js?v=3"></script>
+</head>
+<body>
+
+<main class="container auth-wrap">
+  <div class="auth-split">
+    <div>
+      <div class="eyebrow">Patient registration</div>
+      <h1 style="font-size:2.4rem">Register and start in seconds</h1>
+      <p class="lead">Enter your name and email. You are signed in straight away — no password to remember.</p>
+      <div class="stack" style="margin-top:22px">
+        <div class="row" style="gap:12px;align-items:flex-start"><span class="avatar" style="background:var(--accent)" data-icon="users" data-size="16"></span><div><b>One switch, two views</b><div class="muted" style="font-size:.9rem">After registering, use the Patient / Doctor switch in the top bar to see the same case the way a doctor sees it, and record the final decision.</div></div></div>
+        <div class="row" style="gap:12px;align-items:flex-start"><span class="avatar" data-icon="lock" data-size="16"></span><div><b>Your data stays on this server</b><div class="muted" style="font-size:.9rem">Images and records are stored locally; every access is written to an audit log.</div></div></div>
+      </div>
+    </div>
+    <div class="card auth-card">
+      <h3>Register as a patient</h3>
+      <form id="f" class="stack" novalidate>
+        <div><label class="f" for="name">Full name</label><input type="text" id="name" autocomplete="name" maxlength="80" required></div>
+        <div><label class="f" for="email">Email</label><input type="text" id="email" autocomplete="email" inputmode="email" required></div>
+        <label class="switch"><input type="checkbox" id="agree"> I understand this is a research prototype and not medical advice.</label>
+        <div class="form-err" id="err" role="alert"></div>
+        <button class="btn btn-primary" style="width:100%" id="go">Register &amp; continue</button>
+      </form>
+      <p class="muted" style="margin:16px 0 0;font-size:.84rem">Registering again with the same email brings back your earlier records on this device.</p>
+    </div>
+  </div>
+</main>
+<script>
+const next = new URLSearchParams(location.search).get("next");
+whoami.then((u) => { if (u) location.href = "/dashboard"; });
+const $ = (id) => document.getElementById(id);
+$("f").addEventListener("submit", async (e) => {
+  e.preventDefault(); $("err").textContent = "";
+  if (!$("agree").checked) { $("err").textContent = "Please accept the research-prototype notice."; return; }
+  $("go").disabled = true;
+  try {
+    await api("/api/auth/join", { json: { name: $("name").value, email: $("email").value } });
+    location.href = next && next.startsWith("/") && !next.startsWith("//") ? next : "/dashboard";
+  } catch (ex) { $("err").textContent = ex.message; $("go").disabled = false; }
+});
+</script>
+</body>
+</html>

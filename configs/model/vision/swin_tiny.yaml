@@ -1,0 +1,14 @@
+# Swin-Tiny Pure Vision Backbone config
+name: swin_tiny
+timm_name: "swin_tiny_patch4_window7_224"
+pretrained: true
+num_classes: 0   # pre-head embeddings (CRITICAL: do NOT set a class head in timm)
+embed_dim: 768
+instances:
+  - clinical     # one instance for clinical images
+  - dermoscopy  # separate instance for dermoscopy (NOT shared weights)
+training:
+  freeze_epochs: 5          # freeze backbone, train head only
+  fine_tune_lr_scale: 0.1  # unfreeze last 2 stages at 0.1x LR
+  fine_tune_stages: 2
+gradcam_target: "layers[-1].blocks[-1]"  # last attention block before head

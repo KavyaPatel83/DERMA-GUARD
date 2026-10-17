@@ -1,0 +1,134 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>How it works — DERMA-GUARD</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="/static/css/style.css?v=3">
+  <script src="/static/js/common.js?v=3"></script>
+</head>
+<body>
+<main class="container" style="padding-top:36px">
+  <div class="eyebrow">Method</div>
+  <h2>How DERMA-GUARD reaches a decision</h2>
+  <p class="lead">Most classifiers output one label with one confidence. DERMA-GUARD treats every input as <em>evidence</em> that can be good, weak or missing — and reasons about that before diagnosing.</p>
+
+  <div class="card" style="margin-top:28px">
+    <div class="pipe">
+      <div class="node"><div class="badge" data-icon="upload"></div><b>1 · Inputs</b><small>Photo · patient details · free text</small></div>
+      <div class="node"><div class="badge" data-icon="brain"></div><b>2 · Encoders</b><small>ResNet50 + attention ViT · MetaBlock MLP · Bio_ClinicalBERT</small></div>
+      <div class="node"><div class="badge" data-icon="chart"></div><b>3 · Evidence manager</b><small>Q · R · U · C · S · M per source</small></div>
+      <div class="node"><div class="badge" data-icon="layers"></div><b>4 · Adaptive fusion</b><small>Evidence-weighted, 3 refinement iterations</small></div>
+      <div class="node"><div class="badge" data-icon="shield"></div><b>5 · Gate</b><small>Conformal set + 4-level consensus</small></div>
+    </div>
+  </div>
+
+  <h2 style="margin-top:56px">The five evidence dimensions</h2>
+  <div class="grid g3" style="margin-top:18px">
+    <div class="card"><span class="tag brand">Q</span><h3 style="margin-top:10px">Quality</h3><p class="muted">Image: sharpness, lighting, contrast, resolution, occlusion. Metadata: fraction of fields present. Text: informativeness score (PTIS).</p></div>
+    <div class="card"><span class="tag brand">R</span><h3 style="margin-top:10px">Reliability</h3><p class="muted">How stable the prediction is: low entropy, low variance under test-time augmentation, and agreement across models.</p></div>
+    <div class="card"><span class="tag brand">U</span><h3 style="margin-top:10px">Utility</h3><p class="muted">How informative a modality is for the <em>currently suspected</em> diagnosis — images matter most for melanoma, history for keratoses.</p></div>
+    <div class="card"><span class="tag brand">C</span><h3 style="margin-top:10px">Consistency</h3><p class="muted">Jensen-Shannon agreement between modality predictions. Contradicting sources lower trust in all of them.</p></div>
+    <div class="card"><span class="tag brand">S</span><h3 style="margin-top:10px">Sufficiency</h3><p class="muted">Overall: is there enough good evidence to decide at all? Drives the proceed / acquire / abstain gate.</p></div>
+    <div class="card"><span class="tag brand">M</span><h3 style="margin-top:10px">Missingness</h3><p class="muted">A hard mask. A source that is absent contributes exactly zero weight — no imputed guesses.</p></div>
+  </div>
+
+  <h2 style="margin-top:56px">Try the evidence calculator</h2>
+  <p class="lead">Drag the sliders to see how input quality changes the sufficiency gate and the fusion weights. The formulas are the ones the engine uses.</p>
+  <div class="grid g2" style="margin-top:20px;align-items:start">
+    <div class="card">
+      <div class="formula">S = 0.35·mean(Q) + 0.35·mean(R) + 0.20·C + 0.10·(1 − missing)</div>
+      <div style="margin-top:12px" id="sliders"></div>
+    </div>
+    <div class="card">
+      <h4>Result</h4>
+      <div id="calcOut" style="margin-top:12px"></div>
+    </div>
+  </div>
+
+  <h2 style="margin-top:56px">Four-level consensus</h2>
+  <div class="card" style="margin-top:18px"><div class="scroll-x"><table class="t">
+    <thead><tr><th>Level</th><th>Action</th><th>When</th><th>What happens</th></tr></thead>
+    <tbody>
+      <tr><td>1</td><td><span class="tag accept">ACCEPT</span></td><td>Gate passes, ≥75% of models agree, confidence ≥ 80%</td><td>Result shown with supporting evidence</td></tr>
+      <tr><td>2</td><td><span class="tag arbitrate">ARBITRATE</span></td><td>Gate passes, confidence 50–80%</td><td>Clinician should confirm</td></tr>
+      <tr><td>3</td><td><span class="tag acquire">ACQUIRE</span></td><td>Sufficiency 0.30–0.50 or confidence &lt; 50%</td><td>Asks for a better photo or more details</td></tr>
+      <tr><td>4</td><td><span class="tag escalate">ESCALATE</span></td><td>Sufficiency &lt; 0.30, or a malignant class hides inside the conformal set</td><td>Refers to a specialist; no automated label trusted</td></tr>
+    </tbody></table></div></div>
+
+  <h2 style="margin-top:56px">The seven models</h2>
+  <div class="grid g4" style="margin-top:18px" id="zoo"></div>
+
+  <h2 style="margin-top:56px">Technology</h2>
+  <div class="card" style="margin-top:18px"><div class="row">
+    <span class="tag">PyTorch</span><span class="tag">ResNet50</span><span class="tag">Vision Transformer (MHSA)</span><span class="tag">Bio_ClinicalBERT</span>
+    <span class="tag">Residual MetaBlock MLP</span><span class="tag">Stacking ensemble</span><span class="tag">Split conformal prediction</span>
+    <span class="tag">FastAPI</span><span class="tag">Vanilla JS front-end</span>
+  </div></div>
+</main>
+
+<script>
+const MODS = [
+  { k: "image", name: "Lesion image", q: 0.8, r: 0.85 },
+  { k: "metadata", name: "Patient details", q: 0.7, r: 0.8 },
+  { k: "text", name: "Clinical text", q: 0.6, r: 0.8 },
+];
+const state = { on: { image: true, metadata: true, text: false }, q: {}, r: {}, c: 0.9 };
+MODS.forEach((m) => { state.q[m.k] = m.q; state.r[m.k] = m.r; });
+
+function sliderRow(label, id, val) {
+  return `<div class="slider"><label for="${id}" class="f" style="margin:0">${label}</label>
+    <input type="range" id="${id}" min="0" max="1" step="0.01" value="${val}"><b id="${id}_v">${val.toFixed(2)}</b></div>`;
+}
+document.getElementById("sliders").innerHTML =
+  MODS.map((m) => `<div style="padding:10px 0;border-bottom:1px dashed var(--border)">
+      <label class="switch" style="display:inline-flex;margin-bottom:6px"><input type="checkbox" id="on_${m.k}" ${state.on[m.k] ? "checked" : ""}> ${m.name}</label>
+      ${sliderRow("Quality Q", "q_" + m.k, m.q)}${sliderRow("Reliability R", "r_" + m.k, m.r)}</div>`).join("") +
+  sliderRow("Consistency C", "c", state.c);
+
+const mean = (a) => (a.length ? a.reduce((x, y) => x + y, 0) / a.length : 0);
+function calc() {
+  const act = MODS.filter((m) => state.on[m.k]);
+  const out = document.getElementById("calcOut");
+  if (!act.length) { out.innerHTML = '<div class="callout bad">No evidence supplied — the system abstains.</div>'; return; }
+  const missing = 1 - act.length / 3;
+  const S = 0.35 * mean(act.map((m) => state.q[m.k])) + 0.35 * mean(act.map((m) => state.r[m.k])) + 0.20 * state.c + 0.10 * (1 - missing);
+  const gate = S < 0.30 ? ["INSUFFICIENT_EVIDENCE", "bad", "ESCALATE / abstain"] : S < 0.50 ? ["ACQUIRE_MORE_EVIDENCE", "info", "Acquire better input"] : ["PROCEED", "ok", "Proceed to prediction"];
+  const E = act.map((m) => state.q[m.k] * state.r[m.k]);
+  const tot = E.reduce((a, b) => a + b, 0) || 1;
+  const col = { image: "var(--brand)", metadata: "var(--accent)", text: "var(--warn)" };
+  out.innerHTML = `
+    <div style="font-size:2.4rem;font-weight:800;letter-spacing:-.03em">S = ${S.toFixed(2)}</div>
+    <div class="gauge" style="margin:14px 0 6px"><i style="left:${Math.min(1, S) * 100}%"></i></div>
+    <div class="callout ${gate[1]}" style="margin-top:14px">${gate[0]} → ${gate[2]}</div>
+    <h4 style="margin-top:22px">Fusion weights (∝ Q·R, simplified)</h4>
+    <div class="stackbar" style="margin-top:10px">${act.map((m, i) => `<div style="flex:${E[i] || 0.0001};background:${col[m.k]}"></div>`).join("")}</div>
+    <div class="legend">${act.map((m, i) => `<span><i style="background:${col[m.k]}"></i>${m.name} ${(E[i] / tot * 100).toFixed(0)}%</span>`).join("")}</div>
+    <p class="muted" style="font-size:.84rem;margin-top:14px">The real engine also multiplies in utility U, consistency C and the diagnosis prior over three refinement iterations — this widget shows the first-order effect. Note that on held-out data the evidence-weighted fusion has not been shown to beat the metadata-only model (see Evidence).</p>`;
+}
+document.getElementById("sliders").addEventListener("input", (e) => {
+  const id = e.target.id, v = e.target.type === "checkbox" ? e.target.checked : parseFloat(e.target.value);
+  if (id.startsWith("on_")) state.on[id.slice(3)] = v;
+  else if (id.startsWith("q_")) state.q[id.slice(2)] = v;
+  else if (id.startsWith("r_")) state.r[id.slice(2)] = v;
+  else if (id === "c") state.c = v;
+  const lab = document.getElementById(id + "_v"); if (lab) lab.textContent = v.toFixed(2);
+  calc();
+});
+calc();
+
+const ZOO = [
+  ["A", "Image only", "ResNet50 → 8 patch tokens → 2 MHSA layers"], ["B", "Metadata only", "116 engineered features → residual MetaBlock MLP"],
+  ["C", "Text only", "Bio_ClinicalBERT [CLS] → projector"], ["D", "Image + metadata", "Gated fusion, evidence-aware"],
+  ["E", "Image + text", "Gated fusion, evidence-aware"], ["F", "Metadata + text", "Gated fusion, evidence-aware"],
+  ["G", "All three", "Tri-modal adaptive gated fusion"],
+];
+const zoo = document.getElementById("zoo");
+zoo.innerHTML = ZOO.map(([c, t, d]) => `<div class="card"><div class="row spread"><span class="tag brand">Model ${c}</span><b class="muted" data-acc="${c}"></b></div><h3 style="margin-top:10px">${t}</h3><p class="muted" style="margin:0;font-size:.9rem">${d}</p></div>`).join("");
+const BENCH = { A: 83.66, B: 86.27, C: 85.19, D: 86.27, E: 89.98, F: 85.40, G: 87.80 };
+Object.entries(BENCH).forEach(([c, v]) => { const el = zoo.querySelector(`[data-acc="${c}"]`); if (el) el.textContent = v.toFixed(2) + "% accuracy"; });
+</script>
+</body>
+</html>

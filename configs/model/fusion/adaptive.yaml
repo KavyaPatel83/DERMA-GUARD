@@ -1,0 +1,11 @@
+# DiagnosisAdaptiveFusion config
+name: adaptive
+num_modalities: 5  # dermlip, panderm, swin_clinical, swin_dermo, resnet152
+# d_embedding: mixed, projected to common dim
+d_common: 768
+max_iterations: 3
+convergence_threshold: 0.05
+loss:
+  type: focal
+  gamma: 2.0
+  class_weights: auto  # N / (n_classes * n_c)

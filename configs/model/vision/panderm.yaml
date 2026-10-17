@@ -1,0 +1,9 @@
+# PanDerm Foundation Vision Encoder config
+name: panderm
+hf_repo: "SiyuanYan1/PanDerm"
+embed_dim: 768
+freeze_early_stages: true  # freeze first N-2 stages
+fine_tune_stages: 2        # fine-tune last 2 stages
+output_keys:
+  - features
+  - logits

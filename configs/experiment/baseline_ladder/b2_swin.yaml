@@ -1,0 +1,13 @@
+# Baseline 2: Image Only Swin-Tiny
+name: b2_swin_tiny
+description: "Baseline 2: Swin-Tiny on clinical image only, standard CE"
+
+model:
+  type: swin_tiny
+  pretrained: true
+  fusion: none
+  
+training:
+  epochs: 50
+  batch_size: 32
+  lr: 1e-4

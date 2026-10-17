@@ -1,0 +1,57 @@
+# Python & Bytecode
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.pytest_cache/
+*.pyc
+
+# Virtual Environments
+venv/
+env/
+ENV/
+.venv/
+env.bak/
+venv.bak/
+
+# Environment files & Secrets
+.env
+.env.*
+!.env.example
+
+# IDE & OS files
+.idea/
+.vscode/
+*.swp
+*.swo
+*~
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# Large Model Weights and Cached Tensors (>100MB exceeds GitHub limit)
+*.pt
+*.pth
+*.bin
+*.joblib
+*.pkl
+*.h5
+*.onnx
+# Small exception if needed
+!models/ptis_scorer.pt
+
+# Datasets - raw images (>6.8 GB PAD-UFES-20 dataset)
+data/raw/
+data/raw/**
+data/images/
+data/images/**
+Dummy/Project/data/images/
+Dummy/Project/data/images/**
+
+# Runtime outputs, temporary database, logs, uploads, checkpoints
+outputs/checkpoints/
+outputs/portal/hospital.db*
+outputs/portal/DEMO_CREDENTIALS.txt
+outputs/portal/uploads/
+outputs/portal/thumbs/
+outputs/logs/

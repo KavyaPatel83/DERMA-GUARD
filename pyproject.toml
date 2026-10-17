@@ -1,0 +1,41 @@
+[build-system]
+requires = ["setuptools>=68", "wheel"]
+build-backend = "setuptools.backends.legacy:build"
+
+[project]
+name = "derma-guard"
+version = "4.0.0"
+description = "Agentic Evidence-Management Framework for Reliable Multimodal Dermatological Diagnosis"
+requires-python = ">=3.10"
+readme = "README.md"
+license = {text = "MIT"}
+authors = [
+    {name = "HealthSphere Research Team"}
+]
+
+[project.scripts]
+derma-guard = "src.main:main"
+
+[tool.black]
+line-length = 100
+target-version = ["py310", "py311"]
+skip-string-normalization = false
+
+[tool.isort]
+profile = "black"
+line_length = 100
+
+[tool.flake8]
+max-line-length = 100
+extend-ignore = ["E203", "W503"]
+exclude = [".git", "__pycache__", "build", "dist", "venv", ".venv"]
+
+[tool.mypy]
+python_version = "3.10"
+ignore_missing_imports = true
+warn_return_any = false
+warn_unused_configs = true
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+addopts = "-v --tb=short"

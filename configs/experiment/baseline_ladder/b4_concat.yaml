@@ -1,0 +1,14 @@
+# Baseline 4: Multimodal Concat
+name: b4_concat
+description: "Baseline 4: Concat [clinical, dermo, meta, text] embeddings + linear head"
+
+model:
+  type: multimodal_concat
+  vision_backbone: resnet152
+  text_backbone: clinicalbert
+  fusion: concat_linear
+  
+training:
+  epochs: 50
+  batch_size: 32
+  lr: 1e-4

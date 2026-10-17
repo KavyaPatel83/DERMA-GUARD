@@ -1,0 +1,51 @@
+seed: 42
+num_classes: 2
+image_size: 224
+max_text_length: 128
+train_ratio: 0.70
+val_ratio: 0.15
+test_ratio: 0.15
+batch_size: 16
+epochs: 50
+lr: 1.0e-04
+weight_decay: 1.0e-05
+early_stopping_patience: 10
+gradient_clip: 1.0
+modality_dropout: 0.3
+focal_loss_gamma: 2.0
+ptis_low_threshold: 0.3
+ptis_high_threshold: 0.7
+conformal_alpha: 0.05
+fp16: true
+gradient_checkpointing: true
+
+# Local LLM (Ollama) — zero cost
+llm:
+  provider: 'ollama'
+  base_url: 'http://localhost:11434'
+  model: 'llama3'
+
+data:
+  raw_images: "data/raw/images"
+  raw_metadata: "data/raw/metadata.csv"
+  processed_dir: "data/processed"
+  splits_file: "data/processed/splits.json"
+
+label_map:
+  binary:
+    Malignant: 1
+    Benign: 0
+  multiclass:
+    BCC: 0
+    SCC: 1
+    ACK: 2
+    SEK: 3
+    MEL: 4
+    NEV: 5
+
+evidence:
+  k_neighbors: 5
+
+reports:
+  temperature: 0.3
+  max_tokens: 500

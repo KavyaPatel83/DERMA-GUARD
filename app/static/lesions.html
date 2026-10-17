@@ -1,0 +1,110 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Lesion tracking — DERMA-GUARD</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="/static/css/style.css?v=3">
+  <script src="/static/js/common.js?v=3"></script>
+</head>
+<body>
+<main class="container" style="padding-top:36px">
+  <div class="eyebrow">Longitudinal tracking</div>
+  <h2>Track a lesion over time</h2>
+  <p class="lead">Group repeat photos of the same spot into a timeline. Changes in size, shape and colour are measured automatically — a screening hint, never a diagnosis.</p>
+
+  <div class="workspace" style="margin-top:24px">
+    <div class="stack">
+      <div class="card">
+        <h3>My lesions</h3>
+        <div id="list"><div class="skeleton" style="height:80px"></div></div>
+        <form id="nf" class="row" style="margin-top:14px;flex-wrap:nowrap">
+          <input type="text" id="label" maxlength="60" placeholder="e.g. Mole on left forearm">
+          <button class="btn btn-primary btn-sm">Add lesion</button>
+        </form>
+      </div>
+      <div class="card">
+        <h3>Add a photo to a lesion</h3>
+        <p class="muted" style="font-size:.9rem;margin-top:0">Run an analysis in <a href="/diagnose">New analysis</a>, then attach that case here.</p>
+        <div class="stack">
+          <select id="lesSel"></select>
+          <select id="caseSel"></select>
+          <button class="btn btn-ghost" id="attach">Attach case to lesion</button>
+        </div>
+      </div>
+    </div>
+
+    <div class="stack">
+      <div class="card" id="tl"><div class="empty"><div data-icon="history" data-size="48"></div><p>Select a lesion to see its timeline.</p></div></div>
+    </div>
+  </div>
+</main>
+<script>
+const $ = (id) => document.getElementById(id);
+let current = null;
+
+function chart(obs) {
+  const w = 560, h = 230, m = { l: 48, r: 48, t: 14, b: 34 };
+  const iw = w - m.l - m.r, ih = h - m.t - m.b;
+  const ts = obs.map((o) => o.observed_at), t0 = Math.min(...ts), t1 = Math.max(...ts) || t0 + 1;
+  const X = (t) => m.l + (t1 === t0 ? 0.5 : (t - t0) / (t1 - t0)) * iw;
+  const areas = obs.map((o) => o.area_fraction ?? 0), amax = Math.max(...areas, 0.01);
+  const YA = (a) => m.t + (1 - a / amax) * ih, YC = (c) => m.t + (1 - c) * ih;
+  let g = `<line x1="${m.l}" x2="${w - m.r}" y1="${m.t + ih}" y2="${m.t + ih}" stroke="var(--border)"/>`;
+  const pa = obs.map((o) => `${X(o.observed_at)},${YA(o.area_fraction ?? 0)}`).join(" ");
+  const pc = obs.map((o) => `${X(o.observed_at)},${YC(o.confidence)}`).join(" ");
+  g += `<polyline fill="none" stroke="#0d9488" stroke-width="2.5" points="${pa}"/><polyline fill="none" stroke="#4f46e5" stroke-width="2.5" stroke-dasharray="5 4" points="${pc}"/>`;
+  obs.forEach((o) => {
+    g += `<circle cx="${X(o.observed_at)}" cy="${YA(o.area_fraction ?? 0)}" r="5" fill="${o.simulated ? "#fff" : "#0d9488"}" stroke="#0d9488" stroke-width="2"><title>${new Date(o.observed_at * 1000).toLocaleDateString()}${o.simulated ? " (simulated)" : ""}</title></circle>`;
+    g += `<text x="${X(o.observed_at)}" y="${h - 12}" text-anchor="middle" font-size="11" fill="var(--muted)">${new Date(o.observed_at * 1000).toLocaleDateString([], { month: "short", day: "numeric" })}</text>`;
+  });
+  g += `<text x="${m.l - 6}" y="${m.t + 10}" text-anchor="end" font-size="11" fill="#0d9488">area</text><text x="${w - m.r + 6}" y="${m.t + 10}" font-size="11" fill="#4f46e5">conf.</text>`;
+  return `<div class="chartbox"><svg viewBox="0 0 ${w} ${h}">${g}</svg></div>
+    <div class="legend"><span><i style="background:#0d9488"></i>Lesion area (% of image)</span><span><i style="background:#4f46e5"></i>Model confidence</span><span>○ simulated</span></div>`;
+}
+
+async function showTimeline(id) {
+  current = id;
+  const t = await api(`/api/lesions/${id}/timeline`);
+  const o = t.observations;
+  const rows = o.map((x, i) => {
+    const ch = t.changes[i - 1];
+    return `<tr><td>${fmt.date(x.observed_at)} ${x.simulated ? '<span class="tag pre-malignant">simulated</span>' : ""}</td>
+      <td><span class="tag ${CLASS_GROUP[x.diagnosis]}">${x.diagnosis}</span> ${fmt.pct(x.confidence, 0)}</td>
+      <td>${x.area_fraction != null ? (x.area_fraction * 100).toFixed(1) + "%" : "—"}</td><td>${x.circularity ?? "—"}</td><td>${x.asymmetry ?? "—"}</td>
+      <td>${ch && ch.relative_area_change != null ? `<b style="color:${ch.alert ? "var(--bad)" : "var(--text)"}">${(ch.relative_area_change * 100).toFixed(0)}%</b> over ${ch.days.toFixed(0)} d${ch.alert ? ' <span class="tag malignant">change</span>' : ""}` : "—"}</td>
+      <td><a href="/report?id=${x.case_id}">Open</a></td></tr>`; }).join("");
+  $("tl").innerHTML = `<div class="row spread"><h3 style="margin:0">${fmt.esc(t.lesion.label)}</h3>
+      <button class="btn btn-ghost btn-sm" id="sim">Simulate follow-up…</button></div>
+    ${o.length >= 2 ? chart(o) : '<p class="muted" style="margin-top:12px">Add at least two observations to see a trend.</p>'}
+    ${t.changes.some((c) => c.alert) ? '<div class="callout bad" style="margin-top:10px">A change of 25% or more in lesion area was measured. Confirm with a clinician — this is a screening hint.</div>' : ""}
+    <div class="scroll-x" style="margin-top:12px"><table class="t"><thead><tr><th>Observed</th><th>Model</th><th>Area</th><th>Circularity</th><th>Asymmetry</th><th>Change</th><th></th></tr></thead><tbody>${rows}</tbody></table></div>
+    <ul class="clean" style="margin-top:12px">${t.caveats.map((c) => `<li class="muted">${fmt.esc(c)}</li>`).join("")}</ul>`;
+  $("sim").onclick = async () => {
+    const g = prompt("Simulate lesion growth (%)", "40"); if (g === null) return;
+    const d = prompt("…after how many days?", "60"); if (d === null) return;
+    try { await api(`/api/lesions/${id}/simulate-followup`, { json: { growth_pct: +g, days: +d } }); toast("Simulated observation added (labelled simulated)."); loadAll(); showTimeline(id); }
+    catch (e) { toast(e.message, "bad"); }
+  };
+}
+
+async function loadAll() {
+  const [les, cases] = await Promise.all([api("/api/lesions"), api("/api/cases")]);
+  $("list").innerHTML = les.length ? les.map((l) => `<div class="sev-row"><div><b>${fmt.esc(l.label)}</b><div class="muted" style="font-size:.84rem">${l.n_obs} observation${l.n_obs === 1 ? "" : "s"}</div></div>
+      <button class="btn btn-ghost btn-sm" data-l="${l.id}">Timeline</button></div>`).join("") : '<p class="muted">No lesions yet — add one below.</p>';
+  $("lesSel").innerHTML = les.map((l) => `<option value="${l.id}">${fmt.esc(l.label)}</option>`).join("") || "<option value=''>No lesions</option>";
+  $("caseSel").innerHTML = cases.filter((c) => c.has_image && !c.lesion_id).map((c) => `<option value="${c.id}">${fmt.date(c.created)} · ${c.diagnosis} (${c.action})</option>`).join("") || "<option value=''>No unattached cases with photos</option>";
+}
+document.addEventListener("click", (e) => { const b = e.target.closest("[data-l]"); if (b) showTimeline(b.dataset.l); });
+$("nf").addEventListener("submit", async (e) => { e.preventDefault(); if (!$("label").value.trim()) return;
+  try { await api("/api/lesions", { json: { label: $("label").value } }); $("label").value = ""; loadAll(); } catch (x) { toast(x.message, "bad"); } });
+$("attach").addEventListener("click", async () => {
+  if (!$("lesSel").value || !$("caseSel").value) return toast("Pick a lesion and a case.", "bad");
+  try { await api(`/api/cases/${$("caseSel").value}/lesion`, { json: { lesion_id: $("lesSel").value } }); toast("Attached."); await loadAll(); showTimeline($("lesSel").value); }
+  catch (x) { toast(x.message, "bad"); } });
+(async () => { await requireAuth(["patient", "doctor"]); await loadAll(); })();
+</script>
+</body>
+</html>

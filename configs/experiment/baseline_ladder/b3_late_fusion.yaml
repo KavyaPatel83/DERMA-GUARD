@@ -1,0 +1,14 @@
+# Baseline 3: Late Fusion (Clinical + Dermoscopy)
+name: b3_late_fusion
+description: "Baseline 3: ResNet152(clinical) + ResNet152(dermo), average logits"
+
+model:
+  type: late_fusion
+  branch_clinical: resnet152
+  branch_dermo: resnet152
+  fusion: average_logits
+  
+training:
+  epochs: 50
+  batch_size: 32
+  lr: 1e-4

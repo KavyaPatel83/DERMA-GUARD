@@ -1,0 +1,89 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Cases — DERMA-GUARD</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="/static/css/style.css?v=3">
+  <script src="/static/js/common.js?v=3"></script>
+</head>
+<body>
+<main class="container" style="padding-top:36px">
+  <div class="row spread">
+    <div><div class="eyebrow" id="eyebrow">Records</div><h2 style="margin:0" id="title">My cases</h2></div>
+    <a class="btn btn-primary btn-sm" id="newBtn" href="/diagnose">New analysis</a>
+  </div>
+  <p class="muted" id="sub">Only you and the hospital doctors can see these.</p>
+
+  <div class="kpis" id="kpis" style="margin:22px 0"></div>
+
+  <div class="card">
+    <div class="row" style="margin-bottom:14px"><div class="chips" id="filters"></div></div>
+    <div class="scroll-x"><table class="t" id="tbl"></table></div>
+    <div class="empty" id="empty" hidden>
+      <div data-icon="history" data-size="52"></div>
+      <h3>No cases yet</h3><p>Analyses will appear here.</p>
+    </div>
+  </div>
+</main>
+<script>
+let items = [], filter = "ALL", me;
+const $ = (id) => document.getElementById(id);
+const FILTERS = ["ALL", "ACCEPT", "ARBITRATE", "ACQUIRE", "ESCALATE", "AWAITING", "UNREVIEWED", "REVIEWED"];
+const LABEL = { ALL: "All", AWAITING: "Awaiting review", UNREVIEWED: "AI only", REVIEWED: "Reviewed" };
+$("filters").innerHTML = FILTERS.map((f) => `<button class="chip ${f === "ALL" ? "on" : ""}" data-f="${f}">${LABEL[f] || f}</button>`).join("");
+$("filters").addEventListener("click", (e) => {
+  const b = e.target.closest(".chip"); if (!b) return;
+  filter = b.dataset.f;
+  document.querySelectorAll("#filters .chip").forEach((c) => c.classList.toggle("on", c === b));
+  draw();
+});
+const STATUS = { ai_only: ["AI only", ""], pending_review: ["Awaiting review", "pre-malignant"], reviewed: ["Reviewed", "benign"] };
+
+function draw() {
+  const st = { AWAITING: "pending_review", UNREVIEWED: "ai_only", REVIEWED: "reviewed" };
+  const list = items.filter((i) => filter === "ALL" || (st[filter] ? i.status === st[filter] : i.action === filter));
+  $("empty").hidden = items.length > 0;
+  $("tbl").hidden = items.length === 0;
+  const doc = me.role === "doctor";
+  $("tbl").innerHTML = `<thead><tr><th></th><th>Case</th>${doc ? "<th>Patient</th>" : ""}<th>When</th><th>Finding</th><th>Confidence</th><th>AI decision</th><th>Review</th><th></th></tr></thead><tbody>` +
+    list.map((i) => `<tr>
+      <td>${i.has_image ? `<img class="thumb" loading="lazy" src="/api/case-image/${i.id}" alt="">` : '<div class="thumb"></div>'}</td>
+      <td class="mono">${i.id}</td>${doc ? `<td>${fmt.esc(i.owner)}</td>` : ""}<td>${fmt.date(i.created)}</td>
+      <td><span class="tag ${i.group}">${i.diagnosis}</span> <span class="muted" style="font-size:.84rem">${fmt.esc(i.diagnosis_name)}</span>
+          ${i.truth ? `<div class="muted" style="font-size:.74rem">sample · truth ${i.truth}</div>` : ""}</td>
+      <td>${fmt.pct(i.confidence)}</td>
+      <td><span class="tag ${i.action.toLowerCase()}">${i.action}</span></td>
+      <td><span class="tag ${STATUS[i.status][1]}">${STATUS[i.status][0]}</span>${i.doctor && !doc ? `<div class="muted" style="font-size:.74rem">${fmt.esc(i.doctor)}</div>` : ""}</td>
+      <td><div class="row" style="gap:6px;flex-wrap:nowrap"><a class="btn btn-ghost btn-sm" href="/report?id=${i.id}">${doc ? (i.status === "reviewed" ? "Open" : "Review") : "Open"}</a>
+        ${!doc ? `<button class="btn btn-ghost btn-sm" data-del="${i.id}" aria-label="Delete">${icon("trash", 15)}</button>` : ""}</div></td></tr>`).join("") + "</tbody>";
+}
+
+async function load() {
+  items = await api("/api/cases" + (me.role === "doctor" ? "?scope=all" : ""));
+  const c = (f) => items.filter(f).length;
+  $("kpis").innerHTML = [
+    [items.length, "Cases"], [c((i) => i.action === "ACCEPT"), "Accepted"], [c((i) => i.action === "ARBITRATE"), "Arbitrate"],
+    [c((i) => i.action === "ACQUIRE"), "Need more evidence"], [c((i) => i.action === "ESCALATE"), "Escalated"],
+    [c((i) => i.status === "pending_review"), "Awaiting review"],
+  ].map(([v, l]) => `<div class="kpi"><b>${v}</b><span>${l}</span></div>`).join("");
+  draw();
+}
+document.addEventListener("click", async (e) => {
+  const b = e.target.closest("[data-del]"); if (!b) return;
+  if (!confirm("Delete this case permanently?")) return;
+  try { await api("/api/cases/" + b.dataset.del, { method: "DELETE" }); toast("Case deleted."); load(); } catch (ex) { toast(ex.message, "bad"); }
+});
+(async () => {
+  me = await requireAuth(["patient", "doctor"]);
+  if (me.role === "doctor") {
+    $("title").textContent = "All patient cases"; $("eyebrow").textContent = "Whole hospital"; $("newBtn").hidden = true;
+    $("sub").textContent = "Every analysis in the hospital, newest decisions first. Open a case to see the images, evidence, RAG matches and scores, then record your final decision.";
+  }
+  await load();
+})().catch((e) => toast(e.message, "bad"));
+</script>
+</body>
+</html>

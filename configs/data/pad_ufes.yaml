@@ -1,0 +1,38 @@
+# PAD-UFES-20 Dataset config
+name: pad_ufes
+num_cases: 2298
+splits:
+  train_ratio: 0.70
+  val_ratio: 0.15
+  test_ratio: 0.15
+  seed: 42
+  strategy: patient_level   # group by patient_id, shuffle groups, cumulative assign
+  split_files:
+    train: "data/splits/padufes_train.json"
+    val: "data/splits/padufes_val.json"
+    test: "data/splits/padufes_test.json"
+image_types:
+  - clinical   # smartphone images only
+classes:
+  - BCC
+  - SCC
+  - ACK
+  - SEK
+  - MEL
+  - NEV
+synthetic_text:
+  fields: [age_bucket, body_location, grew, itch, bleed, changed, elevation]
+  validation:
+    regex_leakage_check: true
+    embedding_diversity_threshold: 0.97  # cosine similarity cap
+preprocessing:
+  train:
+    - RandomResizedCrop: 224
+    - HorizontalFlip
+    - RandomRotation: 15
+    - ColorJitter
+    - Normalize: {mean: [0.485, 0.456, 0.406], std: [0.229, 0.224, 0.225]}
+  val_test:
+    - Resize: 256
+    - CenterCrop: 224
+    - Normalize: {mean: [0.485, 0.456, 0.406], std: [0.229, 0.224, 0.225]}

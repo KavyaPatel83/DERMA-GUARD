@@ -1,0 +1,148 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>DERMA-GUARD — AI-assisted skin triage</title>
+  <meta name="description" content="Hospital portal for dermatology: AI-assisted lesion triage with doctor review, appointments and a sourced care assistant.">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="/static/css/style.css?v=3">
+  <script src="/static/js/common.js?v=3"></script>
+</head>
+<body>
+<main>
+  <section class="hero">
+    <div class="container">
+      <div class="fade-in">
+        <div class="eyebrow">DERMA-GUARD · Dermatology triage</div>
+        <h1>Skin care that is <span class="grad-text">fast, careful and human-reviewed</span></h1>
+        <p class="lead">Upload a photo, describe your symptoms and get an evidence-scored AI assessment in seconds — then
+          send it to a dermatologist, book a visit, and ask our sourced care assistant anything along the way.</p>
+        <div class="row" style="margin-top:28px">
+          <a class="btn btn-primary" href="/register">Register as a patient</a>
+          <a class="btn btn-ghost" href="/doctors">Meet our doctors</a>
+        </div>
+        <p class="muted" style="margin-top:18px;font-size:.88rem">Images and records stay on this server. Only you and the hospital doctors can see your cases.</p>
+      </div>
+      <div class="card hero-art fade-in" aria-hidden="true">
+        <h4>Illustration · how a result looks</h4>
+        <div class="bars" style="margin-top:14px">
+          <div class="bar"><span class="name">Lesion image</span><div class="track"><div class="fill" style="width:72%"></div></div><span class="val">72%</span></div>
+          <div class="bar"><span class="name">Patient details</span><div class="track"><div class="fill accent" style="width:18%"></div></div><span class="val">18%</span></div>
+          <div class="bar"><span class="name">Clinical text</span><div class="track"><div class="fill benign" style="width:10%"></div></div><span class="val">10%</span></div>
+        </div>
+        <div class="triage ACCEPT" style="margin-top:20px">
+          <div><div class="lvl">ACCEPT · Level 1</div><p>5 of 5 models agree · confidence 91%</p></div>
+        </div>
+        <div class="row" style="margin-top:14px"><span class="tag">90% conformal set: BCC, ACK</span><span class="tag brand">Sufficiency 0.82</span></div>
+      </div>
+    </div>
+  </section>
+
+  <section class="container" style="padding-bottom:24px">
+    <div class="card stats" id="stats">
+      <div class="stat"><b data-k="models">7</b><span>Model configurations</span></div>
+      <div class="stat"><b>89.98%</b><span>Best test accuracy</span></div>
+      <div class="stat"><b data-k="cases">2,298</b><span>Clinical cases</span></div>
+      <div class="stat"><b>0.998</b><span>Best macro AUC</span></div>
+    </div>
+  </section>
+
+
+  <section class="block" style="padding-bottom:0">
+    <div class="container">
+      <div class="eyebrow">One portal, three roles</div>
+      <h2>Built like a real hospital system</h2>
+      <div class="grid g3" style="margin-top:28px">
+        <div class="card feature"><div class="ico" data-icon="users"></div><h3>Patients</h3><p>Analyse lesions, track every result, request a doctor's review, book appointments and chat with the care assistant.</p></div>
+        <div class="card feature"><div class="ico" data-icon="stetho"></div><h3>Doctors</h3><p>A risk-ranked review queue with the photo, patient details, model evidence, retrieved knowledge and similar documented cases.</p></div>
+        <div class="card feature"><div class="ico" data-icon="lock"></div><h3>Administrators</h3><p>Manage accounts and roles, watch system health and read the audit trail — without access to clinical content.</p></div>
+      </div>
+    </div>
+  </section>
+
+  <section class="block">
+    <div class="container">
+      <div class="eyebrow">AI agents &amp; retrieval</div>
+      <h2>Six specialist agents, one auditable trail</h2>
+      <p class="lead">Every analysis is handled by cooperating agents. You can open the trace for any case and see exactly who did what.</p>
+      <div class="grid g3" style="margin-top:24px">
+        <div class="card"><span class="tag brand">Intake</span><p class="muted" style="margin:10px 0 0">Reads free-text descriptions and extracts age, body site, size and symptoms.</p></div>
+        <div class="card"><span class="tag brand">Vision-Triage</span><p class="muted" style="margin:10px 0 0">Runs the seven trained models and fuses them by evidence quality.</p></div>
+        <div class="card"><span class="tag brand">Safety</span><p class="muted" style="margin:10px 0 0">Scans for emergency wording and applies escalation guardrails.</p></div>
+        <div class="card"><span class="tag brand">Retrieval (RAG)</span><p class="muted" style="margin:10px 0 0">Hybrid dense + keyword search over a curated knowledge base and 2,298 documented cases.</p></div>
+        <div class="card"><span class="tag brand">Referral</span><p class="muted" style="margin:10px 0 0">Recommends the right department and urgency window.</p></div>
+        <div class="card"><span class="tag brand">Report</span><p class="muted" style="margin:10px 0 0">Writes source-cited summaries for patients and clinicians.</p></div>
+      </div>
+    </div>
+  </section>
+
+  <section class="block" style="background:var(--surface-2)">
+    <div class="container">
+      <div class="eyebrow">Pipeline</div>
+      <h2>From raw inputs to an auditable decision</h2>
+      <div class="steps" style="margin-top:28px">
+        <div class="card step"><h3>Encode</h3><p>ResNet50 + attention ViT reads the photo, a residual MLP reads patient metadata, Bio_ClinicalBERT reads the narrative.</p></div>
+        <div class="card step"><h3>Profile evidence</h3><p>Quality, reliability, utility, consistency and missingness are scored per source and combined into sufficiency.</p></div>
+        <div class="card step"><h3>Fuse adaptively</h3><p>Evidence-weighted fusion up-weights the trustworthy modality and iteratively refines weights using the diagnosis prior.</p></div>
+        <div class="card step"><h3>Gate &amp; explain</h3><p>A calibrated conformal set and a 4-level consensus decide: accept, arbitrate, acquire more, or escalate.</p></div>
+      </div>
+    </div>
+  </section>
+
+  <section class="block" style="background:var(--surface-2)">
+    <div class="container">
+      <div class="eyebrow">What's inside</div>
+      <h2>Built to be explained, not just to be accurate</h2>
+      <div class="grid g3" style="margin-top:28px">
+        <div class="card feature"><div class="ico" data-icon="layers"></div><h3>Seven modality combinations</h3><p>Any mix of image, metadata and text works — the system automatically routes to the matching model (A–G) and compares them all.</p></div>
+        <div class="card feature"><div class="ico" data-icon="target"></div><h3>Conformal uncertainty</h3><p>Instead of one overconfident label you get a prediction set (calibrated on held-out data) that grows when the case is ambiguous.</p></div>
+        <div class="card feature"><div class="ico" data-icon="zap"></div><h3>Evidence sufficiency gate</h3><p>If the inputs are too poor to decide safely, the system refuses to diagnose and tells you what to add.</p></div>
+        <div class="card feature"><div class="ico" data-icon="scan"></div><h3>Image quality pre-check</h3><p>Instant feedback on sharpness, lighting, contrast and resolution before any model runs.</p></div>
+        <div class="card feature"><div class="ico" data-icon="flask"></div><h3>Sample case library</h3><p>One-click real cases from the dataset with hidden ground truth, so you can see right and wrong predictions honestly.</p></div>
+        <div class="card feature"><div class="ico" data-icon="doc"></div><h3>Printable reports &amp; history</h3><p>Every analysis is stored locally with a shareable one-page report and a searchable case history.</p></div>
+      </div>
+    </div>
+  </section>
+
+  <section class="block">
+    <div class="container">
+      <div class="grid g2" style="align-items:center;gap:40px">
+        <div>
+          <div class="eyebrow">Benchmark results</div>
+          <h2>Seven models, every input combination</h2>
+          <p class="lead">Each configuration was trained and tested on PAD-UFES-20 with the same 459 test lesions. Combining the photograph with patient details or a description gives the best scores.</p>
+          <a class="btn btn-ghost" href="/performance">Open the full evidence page</a>
+        </div>
+        <div class="card"><h4>Test accuracy by input combination</h4><div class="bars" id="homeBars" style="margin-top:16px"></div>
+          <p class="muted" style="font-size:.8rem;margin:12px 0 0">PAD-UFES-20 benchmark partition, 459 test lesions, six classes.</p></div>
+      </div>
+    </div>
+  </section>
+
+  <section class="block" style="padding-top:0">
+    <div class="container">
+      <div class="card" style="background:linear-gradient(135deg,var(--brand-soft),var(--accent-soft));border:0">
+        <div class="row spread">
+          <div><h2 style="margin:0">Ready to get started?</h2><p class="muted" style="margin:6px 0 0">Create a free patient account — it takes under a minute.</p></div>
+          <a class="btn btn-primary" href="/register">Create account</a>
+        </div>
+      </div>
+    </div>
+  </section>
+</main>
+
+<script>
+(() => {
+  const ACC = [["Image", 83.66], ["Metadata", 86.27], ["Text", 85.19], ["Image + Metadata", 86.27],
+               ["Image + Text", 89.98], ["Metadata + Text", 85.40], ["All three", 87.80]];
+  const best = Math.max(...ACC.map((r) => r[1]));
+  document.getElementById("homeBars").innerHTML = ACC.map(([n, v]) => `
+    <div class="bar"><span class="name">${n}</span>
+    <div class="track"><div class="fill ${v === best ? "" : "accent"}" style="width:${v}%"></div></div>
+    <span class="val">${v.toFixed(1)}%</span></div>`).join("");
+})();
+</script>
+</body>
+</html>

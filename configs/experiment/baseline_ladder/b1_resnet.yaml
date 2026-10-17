@@ -1,0 +1,13 @@
+# Baseline 1: Image Only ResNet152
+name: b1_resnet152
+description: "Baseline 1: ResNet-152 on clinical image only, standard CE loss"
+
+model:
+  type: resnet152
+  pretrained: true
+  fusion: none
+  
+training:
+  epochs: 50
+  batch_size: 32
+  lr: 1e-4

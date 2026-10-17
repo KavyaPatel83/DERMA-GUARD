@@ -1,0 +1,74 @@
+{
+  "age": [
+    "I am {age} years old.",
+    "I'm {age}.",
+    "I am a {age}-year-old."
+  ],
+  "gender": [
+    "I am {gender}.",
+    "Gender: {gender}."
+  ],
+  "region": [
+    "The spot is on my {region}.",
+    "I noticed something on my {region}.",
+    "There's a mark on my {region}.",
+    "I have this thing on my {region}.",
+    "It's on my {region}."
+  ],
+  "fitspatrick": [
+    "I would say my skin is {fitspatrick} on the Fitzpatrick scale.",
+    "My skin type is around {fitspatrick}."
+  ],
+  "diameter": [
+    "It's about {diameter_1} by {diameter_2} millimeters.",
+    "The spot is roughly {diameter_1}mm across.",
+    "It measures around {diameter_1} mm."
+  ],
+  "smoke": [
+    "I {smoke_text} smoke.",
+    "Smoking: {smoke_text}."
+  ],
+  "drink": [
+    "I {drink_text} drink alcohol.",
+    "Alcohol consumption: {drink_text}."
+  ],
+  "itch": [
+    "It {itch_text}.",
+    "The spot {itch_text}."
+  ],
+  "grew": [
+    "It {grew_text}.",
+    "The lesion {grew_text}."
+  ],
+  "hurt": [
+    "It {hurt_text}.",
+    "The spot {hurt_text}."
+  ],
+  "changed": [
+    "It {changed_text}.",
+    "The appearance {changed_text}."
+  ],
+  "bleed": [
+    "It {bleed_text}.",
+    "The spot {bleed_text}."
+  ],
+  "elevation": [
+    "The spot {elevation_text}.",
+    "It {elevation_text}."
+  ],
+  "skin_cancer_history": [
+    "I {history_text} a history of skin cancer in my family.",
+    "Family skin cancer history: {history_text}."
+  ],
+  "cancer_history": [
+    "I {cancer_text} a history of cancer.",
+    "Cancer history: {cancer_text}."
+  ],
+  "pesticide": [
+    "I {pesticide_text} been exposed to pesticides.",
+    "Pesticide exposure: {pesticide_text}."
+  ],
+  "sun_exposure": [
+    "I spend {sun_text} time in the sun."
+  ]
+}

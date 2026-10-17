@@ -1,0 +1,107 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Diagnose — DERMA-GUARD</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="/static/css/style.css?v=3">
+  <script src="/static/js/common.js?v=3"></script>
+  <script src="/static/js/result.js?v=3"></script>
+</head>
+<body>
+<main class="container" style="padding-top:36px;padding-bottom:20px">
+  <div class="eyebrow">Diagnostic workspace</div>
+  <h2>Analyse a lesion</h2>
+  <p class="lead" style="margin-bottom:24px">Provide any combination of photo, patient details and description. The more evidence, the more models can vote — and the system will tell you when it is not enough.</p>
+
+  <div class="workspace">
+    <!-- ================= INPUTS ================= -->
+    <div class="stack">
+      <div class="card">
+        <div class="row spread">
+          <div class="section-title" style="margin:0"><span class="num" style="background:var(--accent)">★</span><h3 style="margin:0">Try a real sample case</h3></div>
+          <div class="chips" id="sampleChips"></div>
+        </div>
+        <p class="muted" style="font-size:.88rem;margin:10px 0 14px">Cases drawn from PAD-UFES-20. The true diagnosis is hidden until after the analysis.</p>
+        <div class="samples" id="samples"><div class="skeleton" style="height:120px"></div></div>
+      </div>
+
+      <div class="card">
+        <div class="section-title"><span class="num">1</span><h3 style="margin:0">Lesion photograph</h3></div>
+        <div class="grid g2" style="align-items:stretch">
+          <label class="drop" id="drop" for="file">
+            <img class="preview" id="preview" alt="" hidden>
+            <div class="hint">
+              <div style="color:var(--brand)" data-icon="upload" data-size="34"></div>
+              <b>Drop an image or click to browse</b>
+              <div class="muted" style="font-size:.85rem">JPG or PNG · up to 15 MB</div>
+            </div>
+            <input class="sr" type="file" id="file" accept="image/png,image/jpeg">
+          </label>
+          <div id="quality" class="stack">
+            <div class="muted" style="font-size:.9rem">An instant quality check appears here once you add a photo.</div>
+          </div>
+        </div>
+        <div class="row" style="margin-top:10px"><button class="btn btn-ghost btn-sm" id="clearImg" hidden>Remove image</button></div>
+      </div>
+
+      <div class="card">
+        <div class="section-title"><span class="num">2</span><h3 style="margin:0">Patient details</h3></div>
+        <div class="fields">
+          <div><label class="f" for="age">Age</label><input type="number" id="age" min="0" max="110" placeholder="e.g. 58"></div>
+          <div><label class="f" for="gender">Sex</label><select id="gender"><option value="">—</option><option>FEMALE</option><option>MALE</option></select></div>
+          <div><label class="f" for="fitspatrick">Skin type (Fitzpatrick)</label>
+            <select id="fitspatrick"><option value="">—</option><option>1</option><option>2</option><option>3</option><option>4</option><option>5</option><option>6</option></select></div>
+          <div class="span1"><label class="f" for="region">Body site</label>
+            <select id="region"><option value="">—</option></select></div>
+          <div><label class="f" for="diameter_1">Diameter 1 (mm)</label><input type="number" id="diameter_1" min="0" step="0.5" placeholder="e.g. 6"></div>
+          <div><label class="f" for="diameter_2">Diameter 2 (mm)</label><input type="number" id="diameter_2" min="0" step="0.5" placeholder="e.g. 5"></div>
+        </div>
+        <label class="f" style="margin-top:18px">Symptoms &amp; history <span style="font-weight:500">(tick what applies)</span></label>
+        <div class="switches" id="switches"></div>
+      </div>
+
+      <div class="card">
+        <div class="section-title"><span class="num">3</span><h3 style="margin:0">Description</h3></div>
+        <textarea id="text" placeholder="e.g. A 58-year-old man with a bleeding, slowly growing nodule on the nose for 4 months."></textarea>
+        <div class="row spread" style="margin-top:10px">
+          <button class="btn btn-ghost btn-sm" id="genText">Write it from the details above</button>
+          <span class="muted" id="ptis" style="font-size:.84rem"></span>
+        </div>
+        <details style="margin-top:16px">
+          <summary class="muted" style="cursor:pointer;font-weight:600;font-size:.9rem">Advanced: force a specific model</summary>
+          <div style="margin-top:10px;max-width:320px">
+            <select id="model">
+              <option value="">Automatic (match to inputs)</option>
+              <option value="A">A · Image</option><option value="B">B · Metadata</option><option value="C">C · Text</option>
+              <option value="D">D · Image + Metadata</option><option value="E">E · Image + Text</option>
+              <option value="F">F · Metadata + Text</option><option value="G">G · All three</option>
+            </select>
+          </div>
+        </details>
+      </div>
+
+      <div class="row">
+        <button class="btn btn-primary" id="go" style="min-width:200px">Analyse case</button>
+        <button class="btn btn-ghost" id="reset">Reset</button>
+        <span class="muted" id="goHint" style="font-size:.88rem"></span>
+      </div>
+    </div>
+
+    <!-- ================= RESULT ================= -->
+    <div class="sticky">
+      <div id="result">
+        <div class="card empty">
+          <div data-icon="scan" data-size="56"></div>
+          <h3>Your result appears here</h3>
+          <p>Choose a sample or fill in the form, then press <b>Analyse case</b>.</p>
+        </div>
+      </div>
+    </div>
+  </div>
+</main>
+<script src="/static/js/diagnose.js?v=3"></script>
+</body>
+</html>

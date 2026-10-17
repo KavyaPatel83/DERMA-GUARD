@@ -1,0 +1,45 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Account — DERMA-GUARD</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="/static/css/style.css?v=3">
+  <script src="/static/js/common.js?v=3"></script>
+</head>
+<body>
+
+<main class="container" style="padding-top:36px;max-width:720px">
+  <div class="eyebrow">Account</div><h2>Your profile &amp; security</h2>
+  <div class="card" id="profile" style="margin-top:20px"></div>
+  <div class="card" id="pwCard" style="margin-top:20px">
+    <h3>Change password</h3>
+    <form id="f" class="stack" novalidate>
+      <div><label class="f" for="cur">Current password</label><input type="password" id="cur" autocomplete="current-password" style="width:100%;padding:11px 13px;border-radius:10px;border:1px solid var(--border);background:var(--surface);color:var(--text);font:500 .95rem var(--font)"></div>
+      <div><label class="f" for="nw">New password</label><input type="password" id="nw" autocomplete="new-password" style="width:100%;padding:11px 13px;border-radius:10px;border:1px solid var(--border);background:var(--surface);color:var(--text);font:500 .95rem var(--font)"></div>
+      <div class="form-err" id="err"></div>
+      <button class="btn btn-primary">Update password</button>
+      <p class="muted" style="font-size:.84rem;margin:0">Changing your password signs out all your other devices.</p>
+    </form>
+  </div>
+</main>
+<script>
+(async () => {
+  const u = await requireAuth();
+  document.getElementById("profile").innerHTML = `<div class="doc-card"><div class="big-av">${fmt.esc(u.name[0])}</div><div>
+    <h3 style="margin:0">${fmt.esc(u.name)}</h3><div class="muted">${fmt.esc(u.email)}</div>
+    <div class="row" style="margin-top:8px"><span class="tag brand">${u.role}</span>${u.department ? `<span class="tag">${fmt.esc(u.department)}</span>` : ""}</div>
+    <div class="muted" style="font-size:.84rem;margin-top:8px">Member since ${fmt.date(u.created)} · last active ${u.last_login ? fmt.date(u.last_login) : "—"}</div></div></div>`;
+  if (window.__open !== false) { const m = await api("/api/auth/me"); if (m.switchable) document.getElementById("pwCard").innerHTML = '<h3>Access</h3><p class="muted" style="margin:6px 0 0">This is a passwordless demo account. Use the Patient / Doctor switch in the top bar to change view.</p>'; }
+  const fe = document.getElementById("f");
+  if (fe) fe.addEventListener("submit", async (e) => {
+    e.preventDefault(); const err = document.getElementById("err"); err.textContent = "";
+    try { await api("/api/auth/password", { json: { current: cur.value, new: nw.value } }); toast("Password updated."); cur.value = nw.value = ""; }
+    catch (ex) { err.textContent = ex.message; }
+  });
+})();
+</script>
+</body>
+</html>

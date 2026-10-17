@@ -1,0 +1,13 @@
+# Baseline 5: PanDerm Finetuned
+name: b5_panderm
+description: "Baseline 5: PanDerm encoder + linear head, fine-tuned"
+
+model:
+  type: panderm
+  pretrained: true
+  fusion: none
+  
+training:
+  epochs: 50
+  batch_size: 32
+  lr: 1e-4

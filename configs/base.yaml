@@ -1,0 +1,85 @@
+defaults:
+  - model/vision/dermlip_panderm
+  - model/vision/panderm
+  - model/vision/swin_tiny
+  - model/vision/resnet152
+  - model/text/clinicalbert
+  - model/fusion/adaptive
+  - data/derm7pt
+  - _self_
+
+project:
+  name: derma-guard
+  version: "4.0"
+  seed: 42
+
+training:
+  batch_size: 32
+  epochs: 100
+  lr: 1.0e-4
+  weight_decay: 0.05
+  gradient_clip: 1.0
+  mixed_precision: true
+  early_stopping:
+    patience: 10
+    monitor: val_macro_f1
+    mode: max
+
+fusion:
+  max_iterations: 3
+  convergence_threshold: 0.05
+  diagnosis_adaptive: true
+
+consensus:
+  strong_threshold: 0.80
+  conflict_threshold: 0.60
+  entropy_threshold: 1.5
+  quality_threshold: 0.30
+
+llm:
+  model: "qwen2.5:7b"
+  base_url: "http://localhost:11434"
+  max_tokens: 512
+  timeout: 30
+  temperature: 0.0
+  max_retries: 2
+
+data:
+  raw_images: "data/raw/pad_ufes/images"
+  raw_metadata: "data/raw/pad_ufes/metadata.csv"
+  processed_dir: "data/processed"
+  splits_dir: "data/splits"
+  splits_file: "data/splits/padufes_splits.json"
+  interim_dir: "data/interim"
+  synthetic_text: "data/interim/pad_ufes_synthetic_text.json"
+  derm7pt_dir: "data/raw/derm7pt"
+
+label_map:
+  binary:
+    Malignant: 1
+    Benign: 0
+  multiclass:
+    BCC: 0
+    SCC: 1
+    ACK: 2
+    SEK: 3
+    MEL: 4
+    NEV: 5
+
+evidence:
+  k_neighbors: 8
+  ood_threshold: 50.0
+
+retrieval:
+  index_dim: 3408  # 768 + 768 + 64 + 2048 = concatenated individual modality embeddings
+
+tracking:
+  wandb:
+    enabled: false
+    project: "derma-guard-v4"
+  mlflow:
+    enabled: false
+    tracking_uri: "http://localhost:5001"
+  tensorboard:
+    enabled: true
+    log_dir: "outputs/logs"

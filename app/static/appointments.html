@@ -1,0 +1,109 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Appointments — DERMA-GUARD</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="/static/css/style.css?v=3">
+  <script src="/static/js/common.js?v=3"></script>
+</head>
+<body>
+<main class="container" style="padding-top:36px">
+  <div class="eyebrow" id="eyebrow">Appointments</div>
+  <h2 id="title">Appointments</h2>
+
+  <div class="workspace" id="patientBook" hidden style="margin-top:24px">
+    <div class="card">
+      <h3>Book a visit</h3>
+      <div class="stack">
+        <div><label class="f" for="doc">Doctor</label><select id="doc"></select></div>
+        <div><label class="f">Date</label><div class="dates" id="dates"></div></div>
+        <div><label class="f">Time</label><div class="slot-grid" id="slots"><span class="muted">Choose a doctor and a date.</span></div></div>
+        <div><label class="f" for="reason">Reason for visit</label><input type="text" id="reason" maxlength="300" placeholder="e.g. Changing mole on my back"></div>
+        <div><label class="f" for="case">Attach an analysis (shares it with the doctor)</label><select id="case"><option value="">None</option></select></div>
+        <div class="form-err" id="err"></div>
+        <button class="btn btn-primary" id="book" disabled>Confirm appointment</button>
+      </div>
+    </div>
+    <div class="card"><h3>My appointments</h3><div id="mine"></div></div>
+  </div>
+
+  <div class="card" id="docView" hidden style="margin-top:24px"><h3>Schedule</h3><div id="sched"></div></div>
+</main>
+<script>
+const $ = (id) => document.getElementById(id);
+let chosenSlot = null, chosenDate = null, byDay = {};
+
+function apptRow(a, role) {
+  const who = role === "doctor" ? a.patient_name : `${a.doctor_name} · ${a.department || ""}`;
+  const live = ["booked", "confirmed"].includes(a.status);
+  return `<div class="sev-row"><div><b>${fmt.slot(a.slot)}</b><div class="muted" style="font-size:.86rem">${fmt.esc(who)}${a.reason ? " — " + fmt.esc(a.reason) : ""}</div></div>
+    <div class="row" style="gap:6px"><span class="tag ${a.status === "confirmed" || a.status === "completed" ? "benign" : a.status === "cancelled" ? "malignant" : ""}">${a.status}</span>
+    ${a.case_id ? `<a class="btn btn-ghost btn-sm" href="/report?id=${a.case_id}">Case</a>` : ""}
+    ${live && role === "doctor" ? `<button class="btn btn-ghost btn-sm" data-a="${a.id}" data-s="confirmed">Confirm</button><button class="btn btn-ghost btn-sm" data-a="${a.id}" data-s="completed">Complete</button>` : ""}
+    ${live ? `<button class="btn btn-danger btn-sm" data-a="${a.id}" data-s="cancelled">Cancel</button>` : ""}</div></div>`;
+}
+
+async function loadList(role) {
+  const list = await api("/api/appointments");
+  const html = list.length ? list.map((a) => apptRow(a, role)).join("") : '<p class="muted">Nothing scheduled yet.</p>';
+  (role === "doctor" ? $("sched") : $("mine")).innerHTML = html;
+}
+
+document.addEventListener("click", async (e) => {
+  const b = e.target.closest("[data-a]"); if (!b) return;
+  if (b.dataset.s === "cancelled" && !confirm("Cancel this appointment?")) return;
+  try { await api(`/api/appointments/${b.dataset.a}`, { method: "PATCH", json: { status: b.dataset.s } }); toast("Updated."); await loadList(window.__role); await loadSlots(); }
+  catch (ex) { toast(ex.message, "bad"); }
+});
+
+async function loadSlots() {
+  if (!$("doc").value) return;
+  byDay = await api("/api/slots?doctor_id=" + $("doc").value);
+  const days = Object.keys(byDay);
+  $("dates").innerHTML = days.length ? days.map((d) => { const dt = new Date(d + "T00:00");
+    return `<button type="button" class="date-btn ${d === chosenDate ? "on" : ""}" data-d="${d}">${dt.toLocaleDateString([], { weekday: "short" })}<small>${dt.toLocaleDateString([], { day: "numeric", month: "short" })}</small></button>`; }).join("")
+    : '<span class="muted">No free dates in the next two weeks.</span>';
+  if (!days.includes(chosenDate)) { chosenDate = days[0] || null; chosenSlot = null; }
+  paintSlots();
+}
+function paintSlots() {
+  document.querySelectorAll(".date-btn").forEach((b) => b.classList.toggle("on", b.dataset.d === chosenDate));
+  const times = (byDay[chosenDate] || []);
+  $("slots").innerHTML = times.map((t) => `<button type="button" class="slot ${chosenDate + "T" + t === chosenSlot ? "on" : ""}" data-t="${t}">${t}</button>`).join("") || '<span class="muted">No times.</span>';
+  $("book").disabled = !chosenSlot;
+}
+
+(async () => {
+  const u = await requireAuth(["patient", "doctor"]);
+  window.__role = u.role;
+  if (u.role === "doctor") {
+    $("eyebrow").textContent = "Doctor"; $("title").textContent = "My schedule";
+    $("docView").hidden = false; await loadList("doctor"); return;
+  }
+  $("patientBook").hidden = false;
+  const [docs, cases] = await Promise.all([api("/api/doctors"), api("/api/cases")]);
+  const pre = new URLSearchParams(location.search);
+  $("doc").innerHTML = docs.map((d) => `<option value="${d.id}">${fmt.esc(d.name)} — ${fmt.esc(d.department || "")}</option>`).join("");
+  if (pre.get("doctor")) $("doc").value = pre.get("doctor");
+  $("case").innerHTML += cases.map((c) => `<option value="${c.id}">${fmt.date(c.created)} · ${c.diagnosis} (${c.action})</option>`).join("");
+  if (pre.get("case")) $("case").value = pre.get("case");
+  if (pre.get("reason")) $("reason").value = pre.get("reason");
+  $("doc").addEventListener("change", () => { chosenSlot = null; loadSlots(); });
+  $("dates").addEventListener("click", (e) => { const b = e.target.closest(".date-btn"); if (b) { chosenDate = b.dataset.d; chosenSlot = null; paintSlots(); } });
+  $("slots").addEventListener("click", (e) => { const b = e.target.closest(".slot"); if (b) { chosenSlot = chosenDate + "T" + b.dataset.t; paintSlots(); } });
+  $("book").addEventListener("click", async () => {
+    $("err").textContent = ""; $("book").disabled = true;
+    try {
+      await api("/api/appointments", { json: { doctor_id: +$("doc").value, slot: chosenSlot, reason: $("reason").value, case_id: $("case").value || null } });
+      toast("Appointment booked."); chosenSlot = null; $("reason").value = "";
+      await Promise.all([loadList("patient"), loadSlots()]);
+    } catch (ex) { $("err").textContent = ex.message; await loadSlots(); }
+  });
+  await Promise.all([loadList("patient"), loadSlots()]);
+})();
+</script>
+</body>
+</html>

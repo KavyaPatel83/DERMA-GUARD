@@ -1,0 +1,67 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Documentation — DERMA-GUARD</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="/static/css/style.css?v=3">
+  <script src="/static/js/common.js?v=3"></script>
+</head>
+<body>
+<main class="container" style="padding-top:36px">
+  <div class="eyebrow">Project documentation</div>
+  <h2>Documentation</h2>
+  <p class="lead">The project's own documents, rendered from the repository: limitations, what did not work, reproducibility, running guides and the evaluation audit.</p>
+  <div class="workspace" style="grid-template-columns: 260px minmax(0,1fr); margin-top:24px">
+    <nav class="card" id="toc" style="position:sticky;top:88px"><div class="skeleton" style="height:140px"></div></nav>
+    <article class="card md" id="doc"></article>
+  </div>
+</main>
+<script>
+const $ = (id) => document.getElementById(id);
+const esc = fmt.esc;
+
+/* minimal, safe markdown -> HTML (headings, lists, tables, code, bold/italic/links) */
+function md(src) {
+  const lines = src.replace(/\r/g, "").split("\n"); let out = [], i = 0;
+  const inline = (t) => esc(t).replace(/`([^`]+)`/g, "<code>$1</code>").replace(/\*\*([^*]+)\*\*/g, "<b>$1</b>")
+    .replace(/(^|[^*])\*([^*\s][^*]*)\*/g, "$1<i>$2</i>").replace(/\[([^\]]+)\]\((https?:[^)\s]+|#[^)\s]*|\/[^)\s]*)\)/g, '<a href="$2">$1</a>');
+  while (i < lines.length) {
+    const l = lines[i];
+    if (/^```/.test(l)) { let code = []; i++; while (i < lines.length && !/^```/.test(lines[i])) code.push(lines[i++]); i++;
+      out.push(`<pre><code>${esc(code.join("\n"))}</code></pre>`); continue; }
+    const h = l.match(/^(#{1,4})\s+(.*)/); if (h) { out.push(`<h${h[1].length}>${inline(h[2])}</h${h[1].length}>`); i++; continue; }
+    if (/^\s*\|.*\|\s*$/.test(l) && /^\s*\|[\s:|-]+\|\s*$/.test(lines[i + 1] || "")) {
+      const cells = (r) => r.trim().replace(/^\||\|$/g, "").split("|").map((c) => inline(c.trim()));
+      const head = cells(l); i += 2; let rows = [];
+      while (i < lines.length && /^\s*\|.*\|\s*$/.test(lines[i])) rows.push(cells(lines[i++]));
+      out.push(`<table><thead><tr>${head.map((c) => `<th>${c}</th>`).join("")}</tr></thead><tbody>${rows.map((r) => `<tr>${r.map((c) => `<td>${c}</td>`).join("")}</tr>`).join("")}</tbody></table>`); continue; }
+    if (/^\s*([-*]|\d+\.)\s+/.test(l)) { const ord = /^\s*\d+\./.test(l); let items = [];
+      while (i < lines.length && /^\s*([-*]|\d+\.)\s+/.test(lines[i])) items.push(`<li>${inline(lines[i++].replace(/^\s*([-*]|\d+\.)\s+/, ""))}</li>`);
+      out.push(`<${ord ? "ol" : "ul"}>${items.join("")}</${ord ? "ol" : "ul"}>`); continue; }
+    if (/^---+\s*$/.test(l)) { out.push("<hr>"); i++; continue; }
+    if (!l.trim()) { i++; continue; }
+    let p = [l]; i++;
+    while (i < lines.length && lines[i].trim() && !/^(#{1,4}\s|```|\s*([-*]|\d+\.)\s|\s*\|)/.test(lines[i])) p.push(lines[i++]);
+    out.push(`<p>${inline(p.join(" "))}</p>`);
+  }
+  return out.join("\n");
+}
+
+async function open(id) {
+  const d = await api(`/api/docs-content/${id}`);
+  $("doc").innerHTML = md(d.markdown);
+  document.querySelectorAll("#toc a").forEach((a) => a.style.fontWeight = a.dataset.id === id ? "800" : "500");
+  history.replaceState(null, "", "#" + id); window.scrollTo({ top: 0 });
+}
+(async () => {
+  const idx = await api("/api/docs-index");
+  $("toc").innerHTML = `<h4>Documents</h4><div class="stack" style="margin-top:10px">${idx.map((d) => `<a href="#${d.id}" data-id="${d.id}" style="display:block;font-weight:500">${esc(d.title)}</a>`).join("")}</div>`;
+  $("toc").addEventListener("click", (e) => { const a = e.target.closest("a[data-id]"); if (a) { e.preventDefault(); open(a.dataset.id); } });
+  open((location.hash || "#" + idx[0].id).slice(1));
+})().catch((e) => { $("doc").textContent = e.message; });
+</script>
+</body>
+</html>

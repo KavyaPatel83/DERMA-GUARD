@@ -1,0 +1,14 @@
+# Baseline 6: Ensemble Majority Vote
+name: b6_ensemble
+description: "Baseline 6: B1+B2+B5 majority vote, no weighting"
+
+model:
+  type: ensemble_majority
+  components:
+    - b1_resnet
+    - b2_swin
+    - b5_panderm
+  fusion: majority_vote
+  
+training:
+  epochs: 0  # Requires trained components

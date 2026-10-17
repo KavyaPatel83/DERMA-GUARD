@@ -1,0 +1,42 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Safety &amp; limits — DERMA-GUARD</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="/static/css/style.css?v=3">
+  <script src="/static/js/common.js?v=3"></script>
+</head>
+<body>
+<main class="container" style="padding-top:36px;max-width:900px">
+  <div class="eyebrow">Responsible use</div>
+  <h2>Safety &amp; limitations</h2>
+  <div class="callout bad" style="font-size:1rem;margin:18px 0 28px">DERMA-GUARD is a research prototype. It has <b>not</b> been clinically validated and must not be used to diagnose, treat or rule out any condition.</div>
+
+  <h3>See a doctor promptly if a spot…</h3>
+  <div class="card" style="margin-bottom:28px"><ul class="clean">
+    <li><b>A</b>symmetric — one half does not match the other</li>
+    <li><b>B</b>order irregular, ragged or blurred</li>
+    <li><b>C</b>olour varies — several shades of brown, black, red or white</li>
+    <li><b>D</b>iameter larger than about 6 mm</li>
+    <li><b>E</b>volving — changing in size, shape, colour, or starting to bleed, itch or crust</li>
+  </ul></div>
+
+  <h3>Known limitations</h3>
+  <div class="stack" style="margin-top:12px">
+    <div class="card" style="border-color:var(--bad)"><h4>0 · Reported benchmark numbers were not held-out measurements</h4><p class="muted" style="margin:8px 0 0">The original training script evaluated on rows it had trained on and adjusted probabilities to hit target accuracies. Re-evaluated on unseen rows, accuracy is about 61–65% for image-based models and about 78% for metadata-only. SCC recall is very low. See the <a href="/performance">Evidence</a> and <a href="/documentation#evaluation-audit">audit</a> pages.</p></div>
+    <div class="card"><h4>1 · Synthetic narratives</h4><p class="muted" style="margin:8px 0 0">PAD-UFES-20 contains no free-text clinical notes. The text modality is generated from structured fields, so it is cleaner and more diagnosis-correlated than real patient writing. Text-inclusive results are likely optimistic.</p></div>
+    <div class="card"><h4>2 · Retrospective evaluation on one dataset</h4><p class="muted" style="margin:8px 0 0">All figures come from a held-out split of a single public dataset collected in Brazil. There is no prospective or multi-centre validation, and skin types 5–6 are almost absent.</p></div>
+    <div class="card"><h4>3 · Class imbalance</h4><p class="muted" style="margin:8px 0 0">Melanoma is about 2% of cases. A handful of test examples makes its metrics unstable; high aggregate accuracy can hide poor performance on rare classes.</p></div>
+    <div class="card"><h4>4 · Acquisition is advisory</h4><p class="muted" style="margin:8px 0 0">When the system says “acquire more evidence” it only recommends — nothing is collected automatically, and the cost model is hand-defined.</p></div>
+    <div class="card"><h4>5 · Heuristic thresholds</h4><p class="muted" style="margin:8px 0 0">Consensus and sufficiency cut-offs are tuned for this dataset and would need recalibration on any new population before being trusted.</p></div>
+    <div class="card"><h4>6 · Photo conditions</h4><p class="muted" style="margin:8px 0 0">The quality pre-check is a heuristic. Hair, glare, rulers, markers and unusual lighting can still mislead the models.</p></div>
+  </div>
+
+  <h3 style="margin-top:32px">Privacy</h3>
+  <div class="card" style="margin-top:12px"><p style="margin:0" class="muted">Everything runs locally. Images and results are stored in <code>website/storage</code> on this computer and can be deleted from the Case history page at any time. No data is sent to third parties.</p></div>
+</main>
+</body>
+</html>

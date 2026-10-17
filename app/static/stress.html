@@ -1,0 +1,86 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>DERMA-STRESS — DERMA-GUARD</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="/static/css/style.css?v=3">
+  <script src="/static/js/common.js?v=3"></script>
+</head>
+<body>
+<main class="container" style="padding-top:36px">
+  <div class="eyebrow">Robustness benchmark</div>
+  <h2>DERMA-STRESS</h2>
+  <p class="lead">Runs the project's own corruption engine (<code>src/stress/corruption.py</code>) against the live models, using patient-disjoint held-out cases only.</p>
+
+  <div class="card" style="margin-top:22px">
+    <div class="row spread">
+      <div><h3 style="margin:0">Run a benchmark</h3>
+        <p class="muted" style="margin:4px 0 0;font-size:.9rem">Roughly one minute per 8 cases. Small samples → wide uncertainty; treat as a smoke test, not a result.</p></div>
+      <div class="row"><label class="f" for="n" style="margin:0">Cases</label>
+        <select id="n" style="width:auto"><option>12</option><option selected>24</option><option>36</option><option>60</option></select>
+        <button class="btn btn-primary" id="run">Start</button></div>
+    </div>
+    <div id="prog" hidden style="margin-top:16px"><div class="track" style="height:10px"><div class="fill" id="pfill" style="width:0"></div></div>
+      <div class="muted" style="font-size:.84rem;margin-top:6px" id="ptxt"></div></div>
+  </div>
+
+  <div class="card" style="margin-top:20px" id="resultCard" hidden>
+    <div class="row spread"><h3 style="margin:0">Results</h3><span class="muted" id="rmeta"></span></div>
+    <div class="scroll-x" style="margin-top:12px"><table class="t" id="tbl"></table></div>
+    <ul class="clean" id="notes" style="margin-top:12px"></ul>
+  </div>
+
+  <div class="card" style="margin-top:20px"><h3>Previous runs</h3><div id="hist" class="muted">—</div></div>
+</main>
+<script>
+const $ = (id) => document.getElementById(id);
+let timer = null;
+
+function render(s) {
+  const R = s.results || {};
+  const cl = R.clean;
+  $("resultCard").hidden = false;
+  $("rmeta").textContent = `${s.cases} cases · ${fmt.date(s.created)}`;
+  const rows = Object.values(R).map((r) => {
+    if (!r.applicable) return `<tr style="opacity:.6"><td>${fmt.esc(r.name || r.id)}</td><td colspan="7" class="muted">Not applicable — ${fmt.esc(r.reason || "")}</td></tr>`;
+    const d = cl ? r.accuracy - cl.accuracy : 0;
+    return `<tr><td><b>${fmt.esc(r.name)}</b><div class="muted" style="font-size:.76rem">${r.category}</div></td><td>${r.n}</td>
+      <td>${(r.accuracy * 100).toFixed(0)}% ${r.id !== "clean" ? `<span style="color:${d < 0 ? "var(--bad)" : "var(--ok)"};font-size:.78rem">${d >= 0 ? "+" : ""}${(d * 100).toFixed(0)}</span>` : ""}</td>
+      <td>${(r.mean_confidence * 100).toFixed(0)}%</td><td>${(r.abstention_rate * 100).toFixed(0)}%</td>
+      <td>${r.selective_risk == null ? "—" : (r.selective_risk * 100).toFixed(0) + "%"}</td>
+      <td>${r.unsafe_acceptance ? `<span class="tag malignant">${r.unsafe_acceptance}</span>` : "0"}</td><td>${(r.prediction_changed * 100).toFixed(0)}%</td></tr>`; }).join("");
+  $("tbl").innerHTML = `<thead><tr><th>Condition</th><th>n</th><th>Accuracy</th><th>Mean confidence</th><th>Abstained</th><th>Selective risk</th><th>Unsafe accepts</th><th>Prediction changed</th></tr></thead><tbody>${rows}</tbody>`;
+  $("notes").innerHTML = (s.notes || []).map((n) => `<li class="muted">${fmt.esc(n)}</li>`).join("") +
+    "<li class='muted'><b>Unsafe accept</b> = a malignant lesion labelled benign with ACCEPT. <b>Selective risk</b> = error rate among answered cases.</li>";
+}
+
+async function poll(id) {
+  clearInterval(timer);
+  timer = setInterval(async () => {
+    try {
+      const s = await api(`/api/v1/benchmarks/${id}`);
+      $("prog").hidden = false; $("pfill").style.width = (s.progress * 100) + "%";
+      $("ptxt").textContent = s.status === "running" ? `Running… ${Math.round(s.progress * 100)}%` : s.status === "error" ? "Error: " + s.error : "Complete";
+      if (s.status !== "running") { clearInterval(timer); $("run").disabled = false; if (s.status === "complete") { render(s); loadHist(); } }
+    } catch (e) { clearInterval(timer); }
+  }, 2500);
+}
+async function loadHist() {
+  const h = await api("/api/v1/benchmarks");
+  $("hist").innerHTML = h.length ? h.map((r) => `<div class="sev-row"><div>${fmt.date(r.created)} <span class="tag">${r.status}</span></div>
+    <button class="btn btn-ghost btn-sm" data-id="${r.id}">Open</button></div>`).join("") : "No runs yet.";
+}
+document.addEventListener("click", async (e) => { const b = e.target.closest("[data-id]"); if (!b) return;
+  const s = await api(`/api/v1/benchmarks/${b.dataset.id}`); if (s.status === "complete") render(s); else toast("Run is " + s.status); });
+$("run").addEventListener("click", async () => {
+  $("run").disabled = true;
+  try { const r = await api("/api/v1/benchmarks/stress", { json: { n_cases: +$("n").value } }); toast("Benchmark started."); poll(r.benchmark_id); }
+  catch (e) { toast(e.message, "bad"); $("run").disabled = false; }
+});
+(async () => { await requireAuth(["doctor", "admin"]); loadHist(); })();
+</script>
+</body>
+</html>

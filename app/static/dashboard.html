@@ -1,0 +1,86 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Dashboard — DERMA-GUARD</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="/static/css/style.css?v=3">
+  <script src="/static/js/common.js?v=3"></script>
+</head>
+<body>
+
+<main class="container" style="padding-top:36px">
+  <div id="root"><div class="skeleton" style="height:240px"></div></div>
+</main>
+<script>
+const ACT = { ACCEPT: "accept", ARBITRATE: "arbitrate", ACQUIRE: "acquire", ESCALATE: "escalate" };
+const kpi = (v, l) => `<div class="kpi"><b>${v}</b><span>${l}</span></div>`;
+(async () => {
+  const u = await requireAuth();
+  const d = await api("/api/dashboard");
+  const root = document.getElementById("root");
+  const hello = `<div class="eyebrow">${u.role} dashboard</div><h2 style="margin-bottom:6px">Hello, ${u.role === "doctor" ? "Dr. " : ""}${fmt.esc(u.name.replace(/^Dr\.\s*/, "").split(" ")[0])}</h2>`;
+
+  if (d.role === "patient") {
+    const L = d.latest;
+    root.innerHTML = hello + `<p class="lead">Your skin-health workspace.</p>
+      <div class="kpis" style="margin:24px 0">${kpi(d.cases, "Analyses")}${kpi(d.pending, "Awaiting doctor review")}${kpi(d.reviewed, "Doctor-reviewed")}${kpi(d.upcoming.length, "Upcoming visits")}</div>
+      <div class="grid g2">
+        <div class="card">
+          <div class="row spread"><h3 style="margin:0">Latest analysis</h3><a class="btn btn-primary btn-sm" href="/diagnose">New analysis</a></div>
+          ${L ? `<div style="margin-top:16px"><div class="row"><span class="tag ${L.diagnosis.group}">${L.diagnosis.code}</span><b>${fmt.esc(L.diagnosis.name)}</b><span class="tag ${ACT[L.triage.action]}">${L.triage.action}</span></div>
+              <p class="muted" style="margin:8px 0">${fmt.pct(L.diagnosis.confidence, 0)} model confidence · ${fmt.date(L.created)}</p>
+              <a class="btn btn-ghost btn-sm" href="/report?id=${L.id}">Open case</a></div>`
+              : `<div class="empty" style="padding:24px"><p>You have not run an analysis yet.</p><a class="btn btn-primary" href="/diagnose">Analyse a lesion</a></div>`}
+        </div>
+        <div class="card">
+          <div class="row spread"><h3 style="margin:0">Upcoming appointments</h3><a class="btn btn-ghost btn-sm" href="/appointments">Book</a></div>
+          ${d.upcoming.length ? d.upcoming.map((a) => `<div class="sev-row"><div><b>${fmt.slot(a.slot)}</b><div class="muted" style="font-size:.86rem">${fmt.esc(a.doctor_name)}${a.reason ? " · " + fmt.esc(a.reason) : ""}</div></div><span class="tag ${a.status === "confirmed" ? "benign" : ""}">${a.status}</span></div>`).join("")
+              : '<p class="muted" style="margin-top:14px">No upcoming visits.</p>'}
+        </div>
+      </div>
+      <div class="card" style="margin-top:20px;background:linear-gradient(135deg,var(--brand-soft),var(--accent-soft));border:0">
+        <h3 style="margin:0">Ask the care assistant</h3><p class="muted" style="margin:4px 0 0">Use the chat button in the corner for sourced answers about skin conditions, your result, or bookings.</p></div>`;
+  } else if (d.role === "doctor") {
+    root.innerHTML = hello + `<p class="lead">You can see every case in the hospital. Requests sent to you come first, then the rest of the queue by AI-assessed risk.</p>
+      <div class="kpis" style="margin:24px 0">${kpi(d.pending, "Awaiting review")}${kpi(d.unreviewed, "AI-only (no doctor yet)")}${kpi(d.reviewed, "Reviewed by you")}${kpi(d.total_cases, "All cases")}${kpi(d.today.length, "Visits today")}</div>
+      <div class="grid g2">
+        <div class="card"><h3>Review queue</h3>
+          ${d.queue.length ? d.queue.map((q) => `<div class="sev-row"><div><b>${fmt.esc(q.owner)}</b>
+              <div class="muted" style="font-size:.86rem"><span class="tag ${q.group}">${fmt.esc(q.diagnosis)}</span> · ${fmt.date(q.created)}${q.mine ? ' · <span class="tag brand">sent to you</span>' : ""}</div></div>
+              <div class="row" style="gap:8px"><span class="tag ${ACT[q.action]}">${q.action}</span><a class="btn btn-primary btn-sm" href="/report?id=${q.id}">Review</a></div></div>`).join("")
+            : '<p class="muted">Queue is clear.</p>'}
+          <a class="btn btn-ghost btn-sm" style="margin-top:12px" href="/history">Browse all cases</a>
+        </div>
+        <div class="card"><h3>Today's schedule</h3>
+          ${d.today.length ? d.today.map((a) => `<div class="sev-row"><div><b>${a.slot.slice(11)}</b> · ${fmt.esc(a.patient_name)}<div class="muted" style="font-size:.86rem">${fmt.esc(a.reason || "—")}</div></div>
+              ${a.case_id ? `<a class="btn btn-ghost btn-sm" href="/report?id=${a.case_id}">Case</a>` : ""}</div>`).join("")
+            : '<p class="muted">No visits today.</p>'}
+          <a class="btn btn-ghost btn-sm" style="margin-top:12px" href="/appointments">Full schedule</a>
+        </div>
+      </div>`;
+  } else {
+    const s = d.system;
+    const ok = (b) => `<span class="tag ${b ? "benign" : "malignant"}">${b ? "ok" : "down"}</span>`;
+    root.innerHTML = hello + `<p class="lead">Operational overview. Clinical content is intentionally not visible to administrators.</p>
+      <div class="kpis" style="margin:24px 0">${kpi(d.users.patient || 0, "Patients")}${kpi(d.users.doctor || 0, "Doctors")}${kpi(d.cases, "Analyses")}${kpi(d.appointments, "Appointments")}${kpi(d.logins_24h, "Sign-ins (24h)")}${kpi(d.failed_24h, "Failed sign-ins (24h)")}</div>
+      <div class="grid g2">
+        <div class="card"><h3>System health</h3>
+          <div class="sev-row"><span>Inference engine (7 models) <span class="muted">${s.engine.device || ""}</span></span>${ok(s.engine.state === "ready")}</div>
+          <div class="sev-row"><span>Knowledge base · <span class="muted">${fmt.esc(s.rag.mode || "")}</span></span>${ok(s.rag.state === "ready")}</div>
+          <div class="sev-row"><span>LLM · <span class="muted">${s.llm.available ? fmt.esc(s.llm.model) : "not running — retrieval mode"}</span></span>${ok(s.llm.available)}</div>
+          <div class="sev-row"><span>Knowledge chunks</span><b>${s.rag.chunks || 0}</b></div>
+        </div>
+        <div class="card"><h3>AI decisions across all cases</h3>
+          <div class="bars">${["ACCEPT", "ARBITRATE", "ACQUIRE", "ESCALATE"].map((a) => { const n = d.actions[a] || 0, t = d.cases || 1;
+            return `<div class="bar" style="grid-template-columns:100px 1fr 40px"><span class="name">${a}</span><div class="track"><div class="fill ${a === "ACCEPT" ? "benign" : a === "ESCALATE" ? "malignant" : a === "ARBITRATE" ? "pre-malignant" : "accent"}" style="width:${n / t * 100}%"></div></div><span class="val">${n}</span></div>`; }).join("")}</div>
+          <a class="btn btn-primary btn-sm" style="margin-top:16px" href="/admin">Open administration</a>
+        </div>
+      </div>`;
+  }
+})().catch((e) => { document.getElementById("root").innerHTML = `<div class="callout bad">${fmt.esc(e.message)}</div>`; });
+</script>
+</body>
+</html>

@@ -1,0 +1,30 @@
+# Derm7pt Dataset config
+name: derm7pt
+num_cases: 1011
+splits:
+  train: 413
+  val: 203
+  test: 395
+split_source: official   # use published index files — NEVER regenerate
+image_types:
+  - clinical
+  - dermoscopy
+classes:
+  - nevus
+  - melanoma
+  - basal_cell_carcinoma
+  - squamous_cell_carcinoma
+  - seborrheic_keratosis
+  - dermatofibroma
+  - vascular_lesion
+preprocessing:
+  train:
+    - RandomResizedCrop: 224
+    - HorizontalFlip
+    - RandomRotation: 15
+    - ColorJitter
+    - Normalize: {mean: [0.485, 0.456, 0.406], std: [0.229, 0.224, 0.225]}
+  val_test:
+    - Resize: 256
+    - CenterCrop: 224
+    - Normalize: {mean: [0.485, 0.456, 0.406], std: [0.229, 0.224, 0.225]}

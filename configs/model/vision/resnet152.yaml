@@ -1,0 +1,9 @@
+# ResNet152 CNN Backbone config
+name: resnet152
+timm_name: "resnet152.a2_in1k"
+pretrained: true
+embed_dim: 2048
+training:
+  freeze_epochs: 5
+  fine_tune_lr_scale: 0.1
+  fine_tune_stages: 2
