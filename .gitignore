@@ -55,3 +55,6 @@ outputs/portal/DEMO_CREDENTIALS.txt
 outputs/portal/uploads/
 outputs/portal/thumbs/
 outputs/logs/
+
+# Temporary rendering files
+*_render.html

@@ -52,8 +52,7 @@ function draw() {
     list.map((i) => `<tr>
       <td>${i.has_image ? `<img class="thumb" loading="lazy" src="/api/case-image/${i.id}" alt="">` : '<div class="thumb"></div>'}</td>
       <td class="mono">${i.id}</td>${doc ? `<td>${fmt.esc(i.owner)}</td>` : ""}<td>${fmt.date(i.created)}</td>
-      <td><span class="tag ${i.group}">${i.diagnosis}</span> <span class="muted" style="font-size:.84rem">${fmt.esc(i.diagnosis_name)}</span>
-          ${i.truth ? `<div class="muted" style="font-size:.74rem">sample · truth ${i.truth}</div>` : ""}</td>
+      <td><span class="tag ${i.group}">${i.diagnosis}</span> <span class="muted" style="font-size:.84rem">${fmt.esc(i.diagnosis_name)}</span></td>
       <td>${fmt.pct(i.confidence)}</td>
       <td><span class="tag ${i.action.toLowerCase()}">${i.action}</span></td>
       <td><span class="tag ${STATUS[i.status][1]}">${STATUS[i.status][0]}</span>${i.doctor && !doc ? `<div class="muted" style="font-size:.74rem">${fmt.esc(i.doctor)}</div>` : ""}</td>

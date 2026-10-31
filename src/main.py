@@ -315,9 +315,6 @@ def _run_case(user: User, request: Request, img: Optional[Image.Image], meta: Di
 
     result = bundle["result"]
     truth = truth.upper() if truth and truth.upper() in eng.CLASS_INFO else None
-    if truth:
-        result["truth"] = {"code": truth, "name": eng.CLASS_INFO[truth]["name"],
-                           "correct": result["diagnosis"]["code"] == truth, "in_set": truth in result["conformal"]["set"]}
 
     case_id = uuid.uuid4().hex[:10]
     has_img = False

@@ -28,17 +28,13 @@
 
   function diagnosis(r) {
     const d = r.diagnosis;
-    const truth = r.truth ? `<div class="callout ${r.truth.correct ? "ok" : r.truth.in_set ? "" : "bad"}" style="margin-top:14px">
-        Dataset ground truth: <b>${e(r.truth.name)}</b> —
-        ${r.truth.correct ? "the model's top prediction is correct ✓" : r.truth.in_set ? "top prediction differs, but the true class is inside the conformal set" : "the true class is outside the conformal set ✗"}
-      </div>` : "";
     return `<div class="dx">
       <div class="ring" style="--p:${d.confidence * 100};--ringc:${RING[d.group]}"><span>${Math.round(d.confidence * 100)}%</span></div>
       <div>
         <div class="row" style="gap:8px"><h3 style="margin:0;font-size:1.4rem">${e(d.name)}</h3><span class="tag ${d.group}">${e(d.group)}</span></div>
         <p class="muted" style="margin:6px 0 0">${e(d.summary)}</p>
       </div></div>
-      <p style="margin:14px 0 0;font-size:.9rem"><b>Typical features:</b> <span class="muted">${e(d.features)}</span></p>${truth}`;
+      <p style="margin:14px 0 0;font-size:.9rem"><b>Typical features:</b> <span class="muted">${e(d.features)}</span></p>`;
   }
 
   function calibNote(r) {
