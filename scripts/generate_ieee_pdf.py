@@ -287,9 +287,7 @@ html_template = """<!DOCTYPE html>
     </div>
   </div>
 
-  <div class="course-note">
-    Research Paper developed for BCSE335L Healthcare Data Analytics under the instruction and evaluation of <strong>Dr. Maheswari S</strong>, School of Computer Science and Engineering, Vellore Institute of Technology (VIT), Chennai.
-  </div>
+
   <div class="github-link">
     Public Repository: <a href="https://github.com/KavyaPatel83/DERMA-GUARD">https://github.com/KavyaPatel83/DERMA-GUARD</a>
   </div>
@@ -679,7 +677,7 @@ html_template = """<!DOCTYPE html>
   <p class="no-indent"><strong>Compliance with DPDP Act 2023 & ICMR AI Guidelines:</strong> This project strictly complies with the Indian <em>Digital Personal Data Protection (DPDP) Act, 2023</em> (Act No. 22 of 2023). Under Section 4 (Grounds for Processing), Section 6 (Consent & Purpose Limitation), and Section 8 (Data Minimisation), all data is processed strictly on-premise without external third-party transmission. No identifiable patient data is retained. Furthermore, the architecture adheres to the <em>Ethical Guidelines for Application of AI in Biomedical Research and Healthcare</em> (2023) by ICMR, embodying Autonomy, Safety, Risk Minimization, Data Privacy, and Human-in-the-Loop oversight.</p>
   <p class="no-indent"><strong>Reporting Guideline Adherence:</strong> This research strictly adheres to the <em>TRIPOD+AI Statement</em> (BMJ 2024 [27]) for clinical artificial intelligence prediction models.</p>
   <p class="no-indent"><strong>Data & Code Availability:</strong> PAD-UFES-20 is publicly available via Mendeley Data (<a href="https://doi.org/10.17632/zr7vgbcyr2.1">https://doi.org/10.17632/zr7vgbcyr2.1</a>). Complete source code, configuration files, and 230 automated unit/integration tests are publicly hosted at: <a href="https://github.com/KavyaPatel83/DERMA-GUARD">https://github.com/KavyaPatel83/DERMA-GUARD</a>.</p>
-  <p class="no-indent"><strong>Academic Originality & Similarity:</strong> The authors certify that this manuscript is 100% original scientific work conducted for BCSE335L Healthcare Data Analytics. The manuscript exhibits 0% uncredited AI text generation and maintains an overall plagiarism similarity score of strictly below 10% in accordance with institutional guidelines.</p>
+  <p class="no-indent"><strong>Academic Originality & Similarity:</strong> The authors certify that this manuscript is 100% original scientific work conducted by the authors. The manuscript exhibits 0% uncredited AI text generation and maintains an overall plagiarism similarity score of strictly below 10% in accordance with institutional guidelines.</p>
 
   <!-- REFERENCES -->
   <h2 class="section-head">References</h2>
@@ -749,9 +747,7 @@ with sync_playwright() as p:
         display_header_footer=True,
         header_template="<div></div>",
         footer_template="""
-        <div style="font-family: 'Times New Roman', serif; font-size: 8.5pt; width: 100%; text-align: center; color: #555;">
-          <span>BCSE335L Healthcare Data Analytics — Final Review · @Dr Maheswari S · VIT Chennai</span>
-          &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+        <div style="font-family: 'Times New Roman', serif; font-size: 9pt; width: 100%; text-align: center; color: #444;">
           <span>Page <span class="pageNumber"></span> of <span class="totalPages"></span></span>
         </div>
         """
